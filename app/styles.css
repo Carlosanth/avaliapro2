@@ -48,6 +48,30 @@ body {
 }
 
 /* ---------- AUTH (login / cadastro) — identidade própria, à parte do resto do app ---------- */
+#boot-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0A192F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.boot-loading-mark {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -.2px;
+  opacity: .85;
+  animation: boot-pulse 1.3s ease-in-out infinite;
+}
+.boot-loading-mark .logo-tag { color: #64FFDA; }
+@keyframes boot-pulse {
+  0%, 100% { opacity: .5; }
+  50% { opacity: 1; }
+}
+
 #login-screen {
   --auth-ink: #0A192F;
   --auth-ink-soft: #112240;

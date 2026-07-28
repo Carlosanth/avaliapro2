@@ -14,6 +14,18 @@ initDB();
 checkSession();
 carregarPrecosPlanoPublico();
 
+// Rede de segurança: se checkSession() travar por algum motivo, não deixa
+// a pessoa presa na tela de carregamento pra sempre.
+setTimeout(() => {
+  const boot = document.getElementById('boot-loading');
+  if (boot && boot.style.display !== 'none') {
+    boot.style.display = 'none';
+    if (document.getElementById('login-screen').style.display === 'none') {
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+  }
+}, 6000);
+
 // Retorno do checkout do Stripe (?checkout=sucesso|cancelado na URL)
 (() => {
   const params = new URLSearchParams(window.location.search);

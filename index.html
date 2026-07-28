@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -24,7 +25,23 @@
       </nav>
       <div class="nav-auth">
         <!-- Ajuste "app/" abaixo se o app ficar em outro caminho/domínio -->
-        <a href="app/index.html" class="btn-login">Entrar</a>
+        <div class="login-dropdown-wrap">
+          <button class="btn-login" onclick="event.stopPropagation(); toggleLoginDropdown()">Entrar</button>
+          <div class="login-dropdown" id="loginDropdown">
+            <div class="login-dropdown-error" id="loginDropdownError"></div>
+            <div class="login-dropdown-ok" id="loginDropdownOk"></div>
+            <div class="input-group">
+              <label for="ld-email">E-mail</label>
+              <input type="email" id="ld-email" placeholder="seuemail@empresa.com" autocomplete="username" onkeydown="if(event.key==='Enter')landingLogin()">
+            </div>
+            <div class="input-group">
+              <label for="ld-senha">Senha</label>
+              <input type="password" id="ld-senha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')landingLogin()">
+              <p class="login-dropdown-forgot"><a href="#" onclick="event.preventDefault(); landingEsqueciSenha()">Esqueci minha senha</a></p>
+            </div>
+            <button class="btn-primary btn-full" onclick="landingLogin()">Entrar</button>
+          </div>
+        </div>
         <a href="app/index.html?cadastro=1" class="btn-primary">Cadastrar-se</a>
       </div>
     </div>

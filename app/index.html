@@ -16,8 +16,14 @@
 </head>
 <body>
 
+<!-- Some por cima de tudo até checkSession() decidir se mostra login ou o app —
+     evita o "flash" da tela de login pra quem já está autenticado. -->
+<div id="boot-loading">
+  <span class="boot-loading-mark">Homolog<span class="logo-tag">Pro</span></span>
+</div>
+
 <!-- LOGIN / CADASTRO -->
-<div id="login-screen">
+<div id="login-screen" style="display:none">
   <div class="auth-shell" id="auth-shell">
 
     <aside class="auth-brand">

@@ -247,6 +247,8 @@ async function enviarLinkRedefinicao() {
 // (mesmo que já exista uma sessão "normal" salva) e abre direto no
 // formulário de nova senha, ignorando login/cadastro.
 function mostrarRedefinirSenha() {
+  const boot = document.getElementById('boot-loading');
+  if (boot) boot.style.display = 'none';
   document.getElementById('app').classList.remove('active');
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-form-wrap').style.display = 'none';
@@ -835,9 +837,11 @@ async function doLogout() {
 // gerenciado por ele mesmo) — então recuperamos e já logamos de novo.
 async function checkSession() {
   const { data: { session } } = await supabaseClient.auth.getSession();
-  if (session) {
-    await carregarPerfilELogar();
-  }
+  let logado = false;
+  if (session) logado = await carregarPerfilELogar();
+  if (!logado) document.getElementById('login-screen').style.display = 'flex';
+  const boot = document.getElementById('boot-loading');
+  if (boot) boot.style.display = 'none';
 }
 
 // ============ CÁLCULO DE NOTA ============
