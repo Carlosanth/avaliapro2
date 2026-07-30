@@ -283,10 +283,7 @@ body {
   }
   .auth-shell--avaliador .auth-brand-top {
     padding: 30px 28px 20px;
-    border-bottom: 2px solid rgb(255 255 255);
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
   }
   .auth-shell--avaliador .auth-panel {
     padding: 24px 28px;
