@@ -491,12 +491,18 @@ async function assinarPlanoBloqueio(plano) {
   errBox.style.display = 'none';
   toast('Processando...');
 
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  let { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) {
     errBox.textContent = 'Sua sessão expirou. Clique em Sair e faça login de novo.';
     errBox.style.display = 'block';
     return;
   }
+  // Força um token fresco antes de usar — a renovação automática em segundo
+  // plano pode não ter rodado se a pessoa passou um tempo fora dessa aba
+  // (ex: decidindo no checkout do Stripe e depois voltando), deixando o
+  // token salvo mais velho do que o servidor ainda aceita.
+  const { data: refreshed } = await supabaseClient.auth.refreshSession();
+  if (refreshed && refreshed.session) session = refreshed.session;
 
   // Chamada direta via fetch, em vez de supabaseClient.functions.invoke() —
   // nesse ponto específico (tela de bloqueio, antes do dashboard carregar),
