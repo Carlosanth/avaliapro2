@@ -491,7 +491,15 @@ async function assinarPlanoBloqueio(plano) {
   const errBox = document.getElementById('bloqueio-error');
   errBox.style.display = 'none';
   toast('Processando...');
-  const { data, error } = await supabaseClient.functions.invoke('criar-checkout-sessao', { body: { plano } });
+  // Passa o token na mão, em vez de confiar no anexo automático do
+  // supabase-js — nesse ponto específico (bem no início do login, antes da
+  // sessão "assentar" de vez), o anexo automático às vezes ainda não está
+  // pronto, e a function do servidor recebia a chamada sem Authorization.
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const { data, error } = await supabaseClient.functions.invoke('criar-checkout-sessao', {
+    body: { plano },
+    headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+  });
 
   if (error || !data || data.ok === false) {
     errBox.textContent = (data && data.error) || 'Não foi possível processar agora. Tente novamente em instantes.';
