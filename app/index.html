@@ -180,40 +180,35 @@
       <div id="bloqueio-form-wrap" style="display:none">
         <div class="auth-head">
           <h2 id="bloqueio-titulo">Seu período de teste acabou</h2>
-          <p id="bloqueio-mensagem">Esperamos que tenha gostado da experiência! Escolha um dos planos abaixo para continuar usando o HomologPro.</p>
+          <p id="bloqueio-mensagem">Esperamos que tenha gostado da experiência!<br>Escolha um dos planos abaixo para continuar usando o HomologPro.</p>
         </div>
         <div class="auth-error" id="bloqueio-error"></div>
 
-        <div class="auth-grid" id="bloqueio-plan-area">
-          <div class="auth-form">
-            <p class="auth-switch" style="margin-top:0"><a href="#" onclick="event.preventDefault(); doLogout()">Sair</a></p>
+        <div id="bloqueio-plan-area">
+          <div class="plan-cards" role="radiogroup" aria-label="Plano">
+            <label class="plan-card" data-plano="essencial" tabindex="0" onclick="assinarPlanoBloqueio('essencial')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();assinarPlanoBloqueio('essencial');}">
+              <div>
+                <div class="plan-name">Essencial</div>
+                <div class="plan-desc">Até 15 fornecedores · 1 admin · avaliadores ilimitados</div>
+              </div>
+              <div class="plan-price" data-plano-preco="essencial">R$ 239,90<span>/mês</span></div>
+            </label>
+            <label class="plan-card recommended" data-plano="profissional" tabindex="0" onclick="assinarPlanoBloqueio('profissional')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();assinarPlanoBloqueio('profissional');}">
+              <div>
+                <div class="plan-name">Profissional</div>
+                <div class="plan-desc">Até 80 fornecedores · 2 admins · avaliadores ilimitados · avaliação de produto por NF</div>
+              </div>
+              <div class="plan-price" data-plano-preco="profissional">R$ 529,90<span>/mês</span></div>
+            </label>
+            <label class="plan-card" tabindex="0" onclick="window.location.href='mailto:contato@homologpro.com.br?subject=Plano Enterprise'">
+              <div>
+                <div class="plan-name">Enterprise</div>
+                <div class="plan-desc">Indicado para empresas que tenham muitos fornecedores e administradores. Entre em contato conosco e saiba mais.</div>
+              </div>
+              <div class="plan-price">Sob consulta</div>
+            </label>
           </div>
-
-          <div class="auth-plan-col">
-            <div class="plan-cards" role="radiogroup" aria-label="Plano">
-              <label class="plan-card" data-plano="essencial" tabindex="0" onclick="assinarPlanoBloqueio('essencial')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();assinarPlanoBloqueio('essencial');}">
-                <div>
-                  <div class="plan-name">Essencial</div>
-                  <div class="plan-desc">Até 15 fornecedores · 1 admin · avaliadores ilimitados</div>
-                </div>
-                <div class="plan-price" data-plano-preco="essencial">R$ 239,90<span>/mês</span></div>
-              </label>
-              <label class="plan-card recommended" data-plano="profissional" tabindex="0" onclick="assinarPlanoBloqueio('profissional')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();assinarPlanoBloqueio('profissional');}">
-                <div>
-                  <div class="plan-name">Profissional</div>
-                  <div class="plan-desc">Até 80 fornecedores · 2 admins · avaliadores ilimitados · avaliação de produto por NF</div>
-                </div>
-                <div class="plan-price" data-plano-preco="profissional">R$ 529,90<span>/mês</span></div>
-              </label>
-              <label class="plan-card" tabindex="0" onclick="window.location.href='mailto:contato@homologpro.com.br?subject=Plano Enterprise'">
-                <div>
-                  <div class="plan-name">Enterprise</div>
-                  <div class="plan-desc">Indicado para empresas que tenham muitos fornecedores e administradores. Entre em contato conosco e saiba mais.</div>
-                </div>
-                <div class="plan-price">Sob consulta</div>
-              </label>
-            </div>
-          </div>
+          <p class="auth-switch"><a href="#" onclick="event.preventDefault(); doLogout()">Sair</a></p>
         </div>
 
         <!-- Avaliador vê só isso, sem cards de plano (quem escolhe plano é o admin) -->
