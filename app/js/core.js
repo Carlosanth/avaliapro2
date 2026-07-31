@@ -470,16 +470,15 @@ function mostrarBloqueioEmpresa(motivo, papel) {
   const mensagem = document.getElementById('bloqueio-mensagem');
   if (motivo === 'cancelada') {
     titulo.textContent = 'Seu plano foi cancelado';
-    mensagem.textContent = 'Sentimos sua falta! Escolha um dos planos abaixo pra reativar o HomologPro e continuar de onde parou.';
+    mensagem.innerHTML = 'Sentimos sua falta!<br>Escolha um dos planos abaixo pra reativar o HomologPro e continuar de onde parou.';
   } else {
     titulo.textContent = 'Seu período de teste acabou';
-    mensagem.textContent = 'Esperamos que tenha gostado da experiência! Escolha um dos planos abaixo para continuar usando o HomologPro.';
+    mensagem.innerHTML = 'Esperamos que tenha gostado da experiência!<br>Escolha um dos planos abaixo para continuar usando o HomologPro.';
   }
 
   const ehAvaliador = papel === 'avaliador';
-  document.getElementById('bloqueio-plan-area').style.display = ehAvaliador ? 'none' : 'grid';
+  document.getElementById('bloqueio-plan-area').style.display = ehAvaliador ? 'none' : 'block';
   document.getElementById('bloqueio-contato-admin').style.display = ehAvaliador ? 'block' : 'none';
-  document.getElementById('auth-shell').classList.toggle('signup-mode', !ehAvaliador);
 
   carregarPrecosPlanoPublico();
 }
