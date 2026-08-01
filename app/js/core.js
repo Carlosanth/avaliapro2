@@ -347,7 +347,17 @@ async function doSignupEmpresa() {
   btn.textContent = 'Criar minha conta — 7 dias grátis';
 
   if (error || (data && data.ok === false)) {
-    errBox.textContent = (data && data.error) || error?.message || 'Erro ao criar sua conta.';
+    let mensagem = (data && data.error) || error?.message || 'Erro ao criar sua conta.';
+    // Quando a Edge Function responde com status != 2xx, o supabase-js não
+    // preenche "data" — a mensagem real fica dentro de error.context (a
+    // Response bruta), então precisamos ler o corpo dela manualmente.
+    if (error && error.context && typeof error.context.json === 'function') {
+      try {
+        const corpo = await error.context.json();
+        if (corpo && corpo.error) mensagem = corpo.error;
+      } catch { /* corpo não era JSON — mantém a mensagem genérica */ }
+    }
+    errBox.textContent = mensagem;
     errBox.style.display = 'block';
     return;
   }
@@ -382,23 +392,6 @@ async function carregarPerfilELogar() {
     .single();
 
   if (error || !profile || !profile.ativo) return false;
-
-  // Checa o status da empresa ANTES de carregar qualquer dado operacional —
-  // se o teste acabou ou o plano foi cancelado, mostra a tela de reativação
-  // em vez de deixar a pessoa cair num dashboard quebrado (as regras de
-  // segurança do banco bloqueiam os dados de qualquer forma, mas sem
-  // explicação nenhuma pra quem está tentando entrar).
-  const { data: empresaStatus } = await supabaseClient
-    .from('empresas')
-    .select('nome, status, trial_termina_em')
-    .eq('id', profile.empresa_id)
-    .single();
-
-  const motivoBloqueio = avaliarBloqueioEmpresa(empresaStatus);
-  if (motivoBloqueio) {
-    mostrarBloqueioEmpresa(motivoBloqueio, profile.papel);
-    return false;
-  }
 
   currentUser = {
     id: profile.id, email: user.email, nome: profile.nome, papel: profile.papel, empresaId: profile.empresa_id,
@@ -436,104 +429,6 @@ async function carregarPerfilELogar() {
     renderAvaliadorShell();
   }
   return true;
-}
-
-// Decide se o acesso da empresa está bloqueado, e por qual motivo — 'trial'
-// (período de teste acabou) ou 'cancelada' (assinatura cancelada). Retorna
-// null quando o acesso está liberado (empresa ativa, ou trial ainda válido).
-function avaliarBloqueioEmpresa(empresa) {
-  if (!empresa) return null;
-  if (empresa.status === 'cancelada') return 'cancelada';
-  if (empresa.status === 'expirada') return 'trial';
-  if (empresa.status === 'trial' && empresa.trial_termina_em) {
-    const fimTrial = new Date(empresa.trial_termina_em);
-    fimTrial.setHours(23, 59, 59, 999);
-    if (fimTrial < new Date()) return 'trial';
-  }
-  return null;
-}
-
-// Mostra a tela de reativação. Admin vê os planos pra assinar na hora;
-// avaliador vê só um aviso pra falar com o administrador (quem escolhe e
-// paga o plano é sempre o admin, nunca o avaliador).
-function mostrarBloqueioEmpresa(motivo, papel) {
-  const boot = document.getElementById('boot-loading');
-  if (boot) boot.style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-form-wrap').style.display = 'none';
-  document.getElementById('signup-form-wrap').style.display = 'none';
-  document.getElementById('forgot-form-wrap').style.display = 'none';
-  document.getElementById('reset-form-wrap').style.display = 'none';
-  document.getElementById('bloqueio-form-wrap').style.display = 'block';
-
-  const titulo = document.getElementById('bloqueio-titulo');
-  const mensagem = document.getElementById('bloqueio-mensagem');
-  if (motivo === 'cancelada') {
-    titulo.textContent = 'Seu plano foi cancelado';
-    mensagem.innerHTML = 'Sentimos sua falta!<br>Escolha um dos planos abaixo pra reativar o HomologPro e continuar de onde parou.';
-  } else {
-    titulo.textContent = 'Seu período de teste acabou';
-    mensagem.innerHTML = 'Esperamos que tenha gostado da experiência!<br>Escolha um dos planos abaixo para continuar usando o HomologPro.';
-  }
-
-  const ehAvaliador = papel === 'avaliador';
-  document.getElementById('bloqueio-plan-area').style.display = ehAvaliador ? 'none' : 'block';
-  document.getElementById('bloqueio-contato-admin').style.display = ehAvaliador ? 'block' : 'none';
-
-  carregarPrecosPlanoPublico();
-}
-
-// Chamado ao clicar num plano na tela de reativação — usa a mesma function
-// de checkout que a tela de configurações de cobrança já usa pra trocar de
-// plano, então o fluxo de pagamento é idêntico ao que o resto do sistema usa.
-async function assinarPlanoBloqueio(plano) {
-  const errBox = document.getElementById('bloqueio-error');
-  errBox.style.display = 'none';
-  toast('Processando...');
-
-  let { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) {
-    errBox.textContent = 'Sua sessão expirou. Clique em Sair e faça login de novo.';
-    errBox.style.display = 'block';
-    return;
-  }
-  // Força um token fresco antes de usar — a renovação automática em segundo
-  // plano pode não ter rodado se a pessoa passou um tempo fora dessa aba
-  // (ex: decidindo no checkout do Stripe e depois voltando), deixando o
-  // token salvo mais velho do que o servidor ainda aceita.
-  const { data: refreshed } = await supabaseClient.auth.refreshSession();
-  if (refreshed && refreshed.session) session = refreshed.session;
-
-  // Chamada direta via fetch, em vez de supabaseClient.functions.invoke() —
-  // nesse ponto específico (tela de bloqueio, antes do dashboard carregar),
-  // o anexo automático do cabeçalho de autenticação pela biblioteca não
-  // estava confiável. Fetch direto elimina essa ambiguidade.
-  let data;
-  try {
-    const resp = await fetch(`${SUPABASE_URL}/functions/v1/criar-checkout-sessao`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey': SUPABASE_PUBLISHABLE_KEY,
-      },
-      body: JSON.stringify({ plano }),
-    });
-    data = await resp.json();
-  } catch (e) {
-    errBox.textContent = 'Não foi possível processar agora. Tente novamente em instantes.';
-    errBox.style.display = 'block';
-    return;
-  }
-
-  if (!data || data.ok === false) {
-    errBox.textContent = (data && data.error) || 'Não foi possível processar agora. Tente novamente em instantes.';
-    errBox.style.display = 'block';
-    return;
-  }
-  if (data.url) { window.location.href = data.url; return; }
-  toast(data.mensagem || 'Plano ativado!');
-  window.location.reload();
 }
 
 // admin_master (dono, fixo) e admin (criado por ele, com permissões por
