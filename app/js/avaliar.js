@@ -599,20 +599,21 @@ function renderAvaliarProdutoTab() {
       <p style="font-size:12px; font-weight:600; color:var(--text-sec); margin:14px 0 8px">Notas (0 a 10)</p>
       <div id="lp-criterios-regua">
         ${criteriosAtivos.filter(c => c.opcoes && c.opcoes.length).map(c => `
-          <div class="criterio-block">
-            <div class="criterio-header">
-              <span class="criterio-nome">${c.nome}</span>
-              <span class="criterio-peso">até ${c.peso}P</span>
-            </div>
+          <div class="form-group lp-select-wrap" style="position:relative">
+            <label>${c.nome} <span style="color:var(--text-muted); font-weight:400">(peso ${c.peso})</span></label>
             <input type="hidden" class="lp-nota-input" data-criterio-id="${c.id}" data-criterio-nome="${c.nome}" data-peso="${c.peso}" value="">
             <textarea class="lp-motivo-input" data-criterio-id="${c.id}" style="display:none"></textarea>
-            ${c.opcoes.map((op, i) => `
-              <label class="opcao-row" id="lp-opcao-${c.id}-${i}" onclick="selecionarOpcaoCriterioProduto('${c.id}', ${i}, this)">
-                <input type="radio" name="lp-crit-${c.id}">
-                <span class="opcao-label">${op.label}</span>
-                <span class="opcao-pontos">${op.pontos}P</span>
-              </label>
-            `).join('')}
+            <div id="lp-select-closed-${c.id}" onclick="toggleLpSelectDropdown('${c.id}')" style="border:1px solid var(--border); border-radius:8px; padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; background:var(--surface)">
+              <span id="lp-select-label-${c.id}" style="color:var(--text-muted)">Selecione uma opção</span>
+              <span style="color:var(--text-muted)">▾</span>
+            </div>
+            <div id="lp-select-dropdown-${c.id}" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:20; background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-top:4px; max-height:260px; overflow-y:auto; box-shadow:0 6px 18px rgba(0,0,0,.18)">
+              ${c.opcoes.map((op, i) => `
+                <div class="lp-select-opcao" onclick="selecionarOpcaoCriterioProduto('${c.id}', ${i})" style="padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid var(--border)">
+                  <span>${op.label}</span><span style="font-weight:600; white-space:nowrap">${op.pontos}P</span>
+                </div>
+              `).join('')}
+            </div>
           </div>
         `).join('')}
       </div>
@@ -737,25 +738,45 @@ function normalizarNomeCriterio(nome) {
 //   obrigatório ali mesmo, porque foi quem lançou a NF que avaliou esse critério
 // - abaixo do peso E o campo veio travado da Conferência: o motivo já foi
 //   escrito lá, não pede de novo (fica só a exibição via o ícone de aviso)
-// Critério de Produto com régua: clicar numa opção preenche o input escondido
-// de nota (mesmo formato que o campo livre) e, se a opção não for a nota
-// máxima, guarda o próprio texto da opção como motivo — sem precisar digitar
-// nada, já que a régua já descreve o que aconteceu.
-function selecionarOpcaoCriterioProduto(critId, idx, labelEl) {
+// Critério de Produto com régua: campo fechado que abre uma listinha ao
+// clicar (em vez de mostrar todas as opções já expandidas na tela). Clicar
+// numa opção preenche o input escondido de nota (mesmo formato que o campo
+// livre) e, se a opção não for a nota máxima, guarda o próprio texto da
+// opção como motivo — sem precisar digitar nada.
+function toggleLpSelectDropdown(critId) {
+  const dropdown = document.getElementById(`lp-select-dropdown-${critId}`);
+  if (!dropdown) return;
+  const abrindo = dropdown.style.display === 'none';
+  fecharTodosLpSelectDropdowns();
+  if (abrindo) dropdown.style.display = 'block';
+}
+
+function fecharTodosLpSelectDropdowns() {
+  document.querySelectorAll('[id^="lp-select-dropdown-"]').forEach(el => el.style.display = 'none');
+}
+
+if (!window._lpSelectOutsideClickBound) {
+  window._lpSelectOutsideClickBound = true;
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.lp-select-wrap')) fecharTodosLpSelectDropdowns();
+  });
+}
+
+function selecionarOpcaoCriterioProduto(critId, idx) {
   const d = db();
   const c = d.criteriosProduto.find(x => x.id === critId);
   if (!c) return;
   const op = c.opcoes[idx];
   const notaInp = document.querySelector(`.lp-nota-input[data-criterio-id="${critId}"]`);
   const motivoInp = document.querySelector(`.lp-motivo-input[data-criterio-id="${critId}"]`);
+  const labelEl = document.getElementById(`lp-select-label-${critId}`);
   if (!notaInp) return;
 
   notaInp.value = op.pontos;
   if (motivoInp) motivoInp.value = op.pontos < c.peso ? op.label : '';
+  if (labelEl) { labelEl.textContent = `${op.label} (${op.pontos}P)`; labelEl.style.color = 'var(--text)'; }
 
-  labelEl.closest('.criterio-block').querySelectorAll('.opcao-row').forEach(row => row.classList.remove('selected'));
-  labelEl.classList.add('selected');
-
+  fecharTodosLpSelectDropdowns();
   atualizarPreviaNotaProduto();
 }
 
