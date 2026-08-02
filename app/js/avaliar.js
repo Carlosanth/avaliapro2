@@ -597,8 +597,27 @@ function renderAvaliarProdutoTab() {
       <div class="form-row three" style="margin-top:10px">
       </div>
       <p style="font-size:12px; font-weight:600; color:var(--text-sec); margin:14px 0 8px">Notas (0 a 10)</p>
+      <div id="lp-criterios-regua">
+        ${criteriosAtivos.filter(c => c.opcoes && c.opcoes.length).map(c => `
+          <div class="criterio-block">
+            <div class="criterio-header">
+              <span class="criterio-nome">${c.nome}</span>
+              <span class="criterio-peso">até ${c.peso}P</span>
+            </div>
+            <input type="hidden" class="lp-nota-input" data-criterio-id="${c.id}" data-criterio-nome="${c.nome}" data-peso="${c.peso}" value="">
+            <textarea class="lp-motivo-input" data-criterio-id="${c.id}" style="display:none"></textarea>
+            ${c.opcoes.map((op, i) => `
+              <label class="opcao-row" id="lp-opcao-${c.id}-${i}" onclick="selecionarOpcaoCriterioProduto('${c.id}', ${i}, this)">
+                <input type="radio" name="lp-crit-${c.id}">
+                <span class="opcao-label">${op.label}</span>
+                <span class="opcao-pontos">${op.pontos}P</span>
+              </label>
+            `).join('')}
+          </div>
+        `).join('')}
+      </div>
       <div class="form-row three" id="lp-criterios">
-        ${criteriosAtivos.map(c => `
+        ${criteriosAtivos.filter(c => !(c.opcoes && c.opcoes.length)).map(c => `
           <div class="form-group">
             <label>${c.nome} <span style="color:var(--text-muted); font-weight:400">(peso ${c.peso})</span> <span id="lp-conf-icone-${c.id}"></span></label>
             <input type="number" min="0" max="${c.peso}" step="0.5" class="lp-nota-input" data-criterio-id="${c.id}" data-criterio-nome="${c.nome}" data-peso="${c.peso}" oninput="verificarNotaProdutoLimites(this); atualizarPreviaNotaProduto()">
@@ -659,8 +678,12 @@ async function buscarFornecedorPorCnpj() {
     nomeInput.value = existente.nome;
     nomeInput.disabled = true;
     const vencido = fornecedorTemDocumentoVencido(existente.id);
-    statusEl.innerHTML = '<span style="color:var(--accent); font-weight:600">🔵 Já cadastrado</span>'
-      + (vencido ? ' &nbsp;<span style="color:var(--danger); font-weight:600">⚠️ Documentação vencida</span>' : '');
+    const avisoVencido = vencido
+      ? (d.descontoDocVencidoAtivo
+          ? ` &nbsp;<span style="color:var(--danger); font-weight:600">⚠️ Documentação vencida (-${d.valorDescontoDocVencido} ponto(s))</span>`
+          : ` &nbsp;<span style="color:var(--danger); font-weight:600">⚠️ Documentação vencida</span>`)
+      : '';
+    statusEl.innerHTML = '<span style="color:var(--accent); font-weight:600">🔵 Já cadastrado</span>' + avisoVencido;
     atualizarPreviaNotaProduto();
     return;
   }
@@ -714,6 +737,28 @@ function normalizarNomeCriterio(nome) {
 //   obrigatório ali mesmo, porque foi quem lançou a NF que avaliou esse critério
 // - abaixo do peso E o campo veio travado da Conferência: o motivo já foi
 //   escrito lá, não pede de novo (fica só a exibição via o ícone de aviso)
+// Critério de Produto com régua: clicar numa opção preenche o input escondido
+// de nota (mesmo formato que o campo livre) e, se a opção não for a nota
+// máxima, guarda o próprio texto da opção como motivo — sem precisar digitar
+// nada, já que a régua já descreve o que aconteceu.
+function selecionarOpcaoCriterioProduto(critId, idx, labelEl) {
+  const d = db();
+  const c = d.criteriosProduto.find(x => x.id === critId);
+  if (!c) return;
+  const op = c.opcoes[idx];
+  const notaInp = document.querySelector(`.lp-nota-input[data-criterio-id="${critId}"]`);
+  const motivoInp = document.querySelector(`.lp-motivo-input[data-criterio-id="${critId}"]`);
+  if (!notaInp) return;
+
+  notaInp.value = op.pontos;
+  if (motivoInp) motivoInp.value = op.pontos < c.peso ? op.label : '';
+
+  labelEl.closest('.criterio-block').querySelectorAll('.opcao-row').forEach(row => row.classList.remove('selected'));
+  labelEl.classList.add('selected');
+
+  atualizarPreviaNotaProduto();
+}
+
 function verificarNotaProdutoLimites(inp) {
   const critId = inp.dataset.criterioId;
   const peso = parseFloat(inp.dataset.peso);
@@ -810,6 +855,8 @@ function aplicarConferenciaVinculada() {
         inp.dataset.travadoConferencia = '1';
         inp.dataset.conferidoPor = conferencia.enviadoPorEmail || '';
         inp.dataset.motivo = r.motivo || '';
+        const motivoInpRegua = document.querySelector(`.lp-motivo-input[data-criterio-id="${critId}"]`);
+        if (motivoInpRegua) motivoInpRegua.value = r.motivo || '';
         const critId = inp.dataset.criterioId;
         const icone = document.getElementById(`lp-conf-icone-${critId}`);
         if (icone) {
@@ -1101,7 +1148,12 @@ function verDetalheAvaliacaoProduto(id) {
         <p style="font-size:12px">${av.justificativa}</p>
       </div>
     ` : ''}
-    <div class="no-print" style="display:flex; justify-content:flex-end; margin-top:16px">
+    <div class="no-print" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px">
+      ${(av.notas || []).some(n => n.motivo) || (av.descontoExtraDetalhe || []).length ? (
+        av.notificadoEm
+          ? `<span style="margin-right:auto; font-size:12px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px">✉️ Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
+          : `<button class="btn btn-primary" onclick="notificarFornecedorProduto('${av.id}')" style="margin-right:auto">✉️ Notificar por e-mail</button>`
+      ) : ''}
       <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
     </div>
   `);
@@ -1238,6 +1290,89 @@ async function excluirAvaliacaoProduto(id) {
 }
 
 // ---- Critérios de produto ----
+
+// Modelos de régua sugeridos (só usados quando peso = 10 e o nome bate com um
+// dos 4 padrões — em qualquer outro caso a régua nasce em branco pro cliente
+// montar do jeito dele). São só sugestão inicial: 100% editável depois.
+const MODELOS_REGUA_PRODUTO = {
+  'nota fiscal': [
+    { label: 'Nota fiscal 100% conforme: quantidade, lote e dados corretos', pontos: 10 },
+    { label: 'Pequena divergência de dado cadastral, sem afetar quantidade/lote', pontos: 9 },
+    { label: 'Divergência de lote, sem afetar quantidade', pontos: 8 },
+    { label: 'Falta de 1 item em relação ao faturado', pontos: 7 },
+    { label: 'Falta de mais de 1 item, divergência pequena no total', pontos: 6 },
+    { label: 'Divergência de quantidade relevante (parte do pedido não chegou)', pontos: 5 },
+    { label: 'Divergência de quantidade e de lote juntas', pontos: 4 },
+    { label: 'Divergência significativa de quantidade, vários itens', pontos: 3 },
+    { label: 'Nota fiscal com múltiplos erros (quantidade, lote e dados)', pontos: 2 },
+    { label: 'Nota fiscal totalmente divergente do que foi recebido', pontos: 1 },
+  ],
+  'prazo': [
+    { label: 'Entregue no prazo combinado ou antes', pontos: 10 },
+    { label: 'Atraso de até 1 dia', pontos: 9 },
+    { label: 'Atraso de 2 dias', pontos: 8 },
+    { label: 'Atraso de 3 dias', pontos: 7 },
+    { label: 'Atraso de 4 dias', pontos: 6 },
+    { label: 'Atraso de 5 dias', pontos: 5 },
+    { label: 'Atraso de 6 a 7 dias', pontos: 4 },
+    { label: 'Atraso de 8 a 9 dias', pontos: 3 },
+    { label: 'Atraso de 10 dias', pontos: 2 },
+    { label: 'Atraso de mais de 10 dias', pontos: 1 },
+  ],
+  'qualidade': [
+    { label: 'Produto e embalagem em perfeito estado, sem nenhuma avaria', pontos: 10 },
+    { label: 'Embalagem com pequena amassadura, sem afetar o produto', pontos: 9 },
+    { label: 'Embalagem danificada, produto intacto', pontos: 8 },
+    { label: 'Produto com avaria leve, mas utilizável', pontos: 7 },
+    { label: 'Produto com avaria visível, uso comprometido em parte', pontos: 6 },
+    { label: 'Parte do lote danificado', pontos: 5 },
+    { label: 'Vários itens danificados', pontos: 4 },
+    { label: 'Maior parte do lote com avaria', pontos: 3 },
+    { label: 'Produto com avaria grave, quase todo o lote', pontos: 2 },
+    { label: 'Produto todo danificado/impróprio', pontos: 1 },
+  ],
+  'transportadora': [
+    { label: 'Descarregamento cuidadoso, sem nenhum indício de mau manuseio', pontos: 10 },
+    { label: 'Pequeno deslize no manuseio, sem causar dano', pontos: 9 },
+    { label: 'Manuseio inadequado pontual (ex: empilhamento incorreto), sem dano ao produto', pontos: 8 },
+    { label: 'Manuseio inadequado, causou avaria leve', pontos: 7 },
+    { label: 'Descarregamento com cuidado insuficiente, avaria perceptível', pontos: 6 },
+    { label: 'Manuseio ruim, parte da carga afetada', pontos: 5 },
+    { label: 'Manuseio ruim, vários itens afetados', pontos: 4 },
+    { label: 'Descarregamento descuidado, maior parte da carga afetada', pontos: 3 },
+    { label: 'Manuseio muito ruim, carga jogada/mal empilhada, quase toda afetada', pontos: 2 },
+    { label: 'Descarregamento sem nenhum cuidado, carga toda comprometida', pontos: 1 },
+  ],
+};
+
+// Empresa sem nenhum critério de produto cadastrado (nova, ou legada que nunca
+// criou nenhum) ganha automaticamente os 4 critérios padrão, peso 10, já com
+// a régua sugerida — pode excluir/editar à vontade depois. Empresa que já tem
+// QUALQUER critério (mesmo 1 só, criado manualmente) nunca é tocada por isso,
+// pra não duplicar o que ela já montou.
+async function seedCriteriosProdutoPadrao() {
+  if (criteriosProdutoCache.length > 0) return;
+  const nomesPadrao = ['Nota Fiscal', 'Prazo', 'Qualidade', 'Transportadora'];
+  const linhas = nomesPadrao.map(nome => ({
+    empresa_id: currentUser.empresaId, nome, peso: 10, ativo: true,
+    opcoes: getModeloReguaPadrao(nome, 10),
+  }));
+  const { error } = await supabaseClient.from('criterios_produto').insert(linhas);
+  if (error) { console.error('Erro ao pré-cadastrar critérios de produto padrão:', error.message); return; }
+  addLog('criterios_produto_seed', `${currentUser.email} — critérios padrão de produto pré-cadastrados automaticamente`);
+  await carregarCriteriosProduto();
+}
+
+function getModeloReguaPadrao(nome, peso) {
+  if (peso !== 10) return null;
+  const chave = (nome || '').trim().toLowerCase();
+  if (MODELOS_REGUA_PRODUTO[chave]) return MODELOS_REGUA_PRODUTO[chave].map(o => ({ ...o }));
+  // Nome não bate com nenhum dos 4 padrões — ainda assim, com peso 10, oferece
+  // a régua genérica de 1 a 10 (nota já vem pronta, texto fica em branco pro
+  // admin descrever o que aquele nível significa pro critério dele).
+  return Array.from({ length: 10 }, (_, i) => ({ label: '', pontos: 10 - i }));
+}
+
 function renderCriteriosProdutoTab() {
   const d = db();
   const wrap = document.getElementById('avaliar-produto-tab');
@@ -1265,14 +1400,94 @@ function renderCriteriosProdutoLista() {
     wrap.innerHTML = '<div class="empty-state"><p>Nenhum critério cadastrado ainda. Adicione acima (ex: Nota Fiscal, Prazo, Quantidade, Condições).</p></div>';
     return;
   }
-  wrap.innerHTML = `<table><thead><tr><th>Critério</th><th style="width:120px">Peso</th><th style="width:90px">Ativo</th><th></th></tr></thead><tbody>
+  wrap.innerHTML = `<table><thead><tr><th>Critério</th><th style="width:120px">Peso</th><th style="width:90px">Ativo</th><th style="width:100px">Régua</th><th></th></tr></thead><tbody>
     ${d.criteriosProduto.map(c => `<tr>
       <td style="font-weight:500">${c.nome}</td>
       <td><input type="number" min="0" step="0.5" value="${c.peso}" style="width:80px" onchange="salvarPesoCriterioProduto('${c.id}', this.value)"></td>
       <td><input type="checkbox" ${c.ativo ? 'checked' : ''} onchange="toggleCriterioProdutoAtivo('${c.id}', this.checked)"></td>
-      <td><div class="actions"><button class="btn btn-danger btn-sm" onclick="excluirCriterioProduto('${c.id}')">Excluir</button></div></td>
-    </tr>`).join('')}
+      <td>${(c.opcoes && c.opcoes.length) ? `<span style="color:var(--accent); font-weight:600">${c.opcoes.length} opções</span>` : '<span style="color:var(--text-muted)">Livre</span>'}</td>
+      <td><div class="actions"><button class="btn btn-secondary btn-sm" onclick="toggleReguaEditor('${c.id}')">Editar régua</button> <button class="btn btn-danger btn-sm" onclick="excluirCriterioProduto('${c.id}')">Excluir</button></div></td>
+    </tr>
+    ${window._reguaEmEdicaoId === c.id ? `<tr><td colspan="5">${renderReguaEditorHtml(c)}</td></tr>` : ''}`).join('')}
   </tbody></table>`;
+}
+
+// ---- Editor de régua (opções de texto + pontos) por critério de produto ----
+window._reguaEmEdicaoId = null;
+window._reguaBuilder = [];
+
+function toggleReguaEditor(id) {
+  const d = db();
+  if (window._reguaEmEdicaoId === id) { window._reguaEmEdicaoId = null; renderCriteriosProdutoLista(); return; }
+  const c = d.criteriosProduto.find(x => x.id === id);
+  if (!c) return;
+  window._reguaEmEdicaoId = id;
+  window._reguaBuilder = (c.opcoes && c.opcoes.length) ? c.opcoes.map(o => ({ ...o })) : [];
+  renderCriteriosProdutoLista();
+}
+
+function addReguaOpcao() {
+  window._reguaBuilder.push({ label: '', pontos: 0 });
+  renderCriteriosProdutoLista();
+}
+
+function removeReguaOpcao(idx) {
+  window._reguaBuilder.splice(idx, 1);
+  renderCriteriosProdutoLista();
+}
+
+function updateReguaOpcaoField(idx, field, value) {
+  window._reguaBuilder[idx][field] = field === 'pontos' ? (parseFloat(value) || 0) : value;
+}
+
+function sugerirModeloReguaProduto(id) {
+  const d = db();
+  const c = d.criteriosProduto.find(x => x.id === id);
+  if (!c) return;
+  const modelo = getModeloReguaPadrao(c.nome, c.peso);
+  if (!modelo) { toast('Não há modelo padrão pra esse nome/peso — monte a régua manualmente.'); return; }
+  window._reguaBuilder = modelo;
+  renderCriteriosProdutoLista();
+}
+
+async function salvarReguaCriterioProduto(id) {
+  const opcoes = window._reguaBuilder.filter(o => o.label.trim());
+  if (window._reguaBuilder.some(o => !o.label.trim())) toast('Linhas sem texto foram descartadas ao salvar.');
+  const { error } = await supabaseClient.from('criterios_produto').update({ opcoes }).eq('id', id);
+  if (error) { toast('Erro ao salvar régua: ' + error.message); return; }
+  addLog('criterio_produto_regua_editada', `${currentUser.email} atualizou a régua de um critério de produto`);
+  window._reguaEmEdicaoId = null;
+  await carregarCriteriosProduto();
+  renderCriteriosProdutoLista();
+  toast('Régua salva!');
+}
+
+function renderReguaEditorHtml(c) {
+  const modeloDisponivel = getModeloReguaPadrao(c.nome, c.peso) !== null;
+  return `
+    <div class="criterio-block" style="margin:6px 0">
+      <p style="font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:8px">
+        Régua de "${c.nome}" — deixe em branco (sem opções) pra continuar com número livre de 0 a ${c.peso}
+      </p>
+      ${window._reguaBuilder.map((op, i) => `
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px">
+          <input type="text" value="${op.label}" placeholder="Ex: Entregue no prazo combinado" style="flex:1" oninput="updateReguaOpcaoField(${i},'label',this.value)">
+          <input type="number" step="0.5" value="${op.pontos}" placeholder="Pts" style="width:70px" oninput="updateReguaOpcaoField(${i},'pontos',this.value)">
+          <button class="btn btn-danger btn-sm" onclick="removeReguaOpcao(${i})">✕</button>
+        </div>
+      `).join('')}
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px">
+        <div style="display:flex; gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="addReguaOpcao()">+ Opção</button>
+          ${modeloDisponivel ? `<button class="btn btn-secondary btn-sm" onclick="sugerirModeloReguaProduto('${c.id}')">Sugerir modelo padrão</button>` : ''}
+        </div>
+        <div style="display:flex; gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="toggleReguaEditor('${c.id}')">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="salvarReguaCriterioProduto('${c.id}')">Salvar régua</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 async function addCriterioProduto() {
@@ -1280,8 +1495,10 @@ async function addCriterioProduto() {
   const peso = parseFloat(document.getElementById('ncp-peso').value) || 1;
   if (!nome) { toast('Informe o nome do critério.'); return; }
 
+  const opcoes = getModeloReguaPadrao(nome, peso) || [];
+
   const { error } = await supabaseClient.from('criterios_produto').insert({
-    empresa_id: currentUser.empresaId, nome, peso, ativo: true,
+    empresa_id: currentUser.empresaId, nome, peso, ativo: true, opcoes,
   });
   if (error) { toast('Erro ao criar critério: ' + error.message); return; }
 
@@ -1290,7 +1507,7 @@ async function addCriterioProduto() {
   document.getElementById('ncp-peso').value = '1';
   await carregarCriteriosProduto();
   renderCriteriosProdutoTab();
-  toast('Critério adicionado!');
+  toast(opcoes.length ? 'Critério adicionado com régua sugerida — revise e ajuste se quiser.' : 'Critério adicionado!');
 }
 
 async function salvarPesoCriterioProduto(id, novoPeso) {

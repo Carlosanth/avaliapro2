@@ -174,7 +174,7 @@ function renderAdDashboard() {
               const sit = getSituacao(av.nota);
               const acao = av.notificadoEm
                 ? `<span style="margin-left:auto; font-size:11px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:3px">${ic('mail', 12)} Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
-                : `<button class="btn btn-secondary btn-sm" style="margin-left:auto; display:inline-flex; align-items:center; gap:5px" onclick="abrirNotificacaoAvaliacao('${av.id}')">${ic('bell', 13)} Ver / Notificar</button>`;
+                : `<button class="btn btn-secondary btn-sm" style="margin-left:auto; display:inline-flex; align-items:center; gap:5px" onclick="verDetalheAvaliacao('${av.id}')">${ic('bell', 13)} Ver / Notificar</button>`;
               return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px">
                 <span><b>${forn ? forn.nome : '—'}</b> — nota ${av.nota.toFixed(1)}</span>
                 ${badgeSit(sit)}
@@ -208,7 +208,7 @@ function renderAdDashboard() {
               const forn = d.fornecedores.find(f => f.id === av.fornecedorId);
               const acao = av.notificadoEm
                 ? `<span style="margin-left:auto; font-size:11px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:3px">${ic('mail', 12)} Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
-                : `<button class="btn btn-secondary btn-sm" style="margin-left:auto; display:inline-flex; align-items:center; gap:5px" onclick="abrirNotificacaoProduto('${av.id}')">${ic('bell', 13)} Ver / Notificar</button>`;
+                : `<button class="btn btn-secondary btn-sm" style="margin-left:auto; display:inline-flex; align-items:center; gap:5px" onclick="verDetalheAvaliacaoProduto('${av.id}')">${ic('bell', 13)} Ver / Notificar</button>`;
               return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px">
                 <span><b>${forn ? forn.nome : '—'}</b> — NF ${av.numeroNf || '—'} · nota ${av.notaGeral != null ? av.notaGeral.toFixed(1) : '—'}</span>
                 ${av.conceito ? `<span class="badge badge-neutral">${av.conceito}</span>` : ''}

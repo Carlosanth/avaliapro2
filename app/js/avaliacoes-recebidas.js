@@ -143,7 +143,7 @@ function renderAvaliacoesTableComAcoes(lista, d) {
           <td>${av.liberadoEdicao ? '<span class="badge badge-warn">Liberada</span>' : '<span class="badge badge-neutral">Travada</span>'}</td>
           <td><div class="actions">
             <button class="btn btn-secondary btn-sm" onclick="verDetalheAvaliacao('${av.id}')">Ver</button>
-            ${!av.semServico && (sit === 'reprovado' || sit === 'parcial') ? `<button class="btn btn-secondary btn-sm" onclick="abrirNotificacaoAvaliacao('${av.id}')" title="Ver e notificar por e-mail">🔔</button>` : ''}
+            ${!av.semServico && (sit === 'reprovado' || sit === 'parcial') ? `<button class="btn btn-secondary btn-sm" onclick="verDetalheAvaliacao('${av.id}')" title="Ver e notificar por e-mail">🔔</button>` : ''}
             ${!av.liberadoEdicao ? `<button class="btn btn-secondary btn-sm" onclick="liberarEdicao('${av.id}')">Liberar edição</button>` : ''}
           </div></td>
         </tr>`;
@@ -199,6 +199,11 @@ function verDetalheAvaliacao(id) {
     ${av.obs ? `<div style="margin-top:8px; font-size:12px; color:var(--text-sec)"><b>Observações:</b> ${av.obs}</div>` : ''}
     ${av.anexos && av.anexos.length ? `<div style="margin-top:10px"><b style="font-size:12px">Anexos:</b>${av.anexos.map(a => `<div class="anexo-item">📎 ${a.caminhoStorage ? `<a href="#" onclick="event.preventDefault(); baixarAnexoAvaliacao('${a.caminhoStorage}', '${a.nome}')">${a.nome}</a>` : a.nome} <span style="color:var(--text-muted)">${a.tamanho}</span></div>`).join('')}</div>` : ''}
     <div class="no-print" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px">
+      ${!av.semServico && (sit === 'reprovado' || sit === 'parcial') ? (
+        av.notificadoEm
+          ? `<span style="margin-right:auto; font-size:12px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px">✉️ Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
+          : `<button class="btn btn-primary" onclick="notificarFornecedorNota('${av.id}')" style="margin-right:auto">✉️ Notificar por e-mail</button>`
+      ) : ''}
       <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
       <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
     </div>

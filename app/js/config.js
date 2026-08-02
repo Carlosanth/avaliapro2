@@ -27,7 +27,16 @@ async function garantirPlanosConfig() {
 function getDefaultTextos() {
   // Vazio de propósito: cada empresa escreve o texto do jeito dela — não faz
   // sentido todo cliente novo do SaaS herdar um texto-modelo de uma empresa específica.
-  return { 'cert-prod': '', 'cert-serv': '', 'aprov-prod': '', 'aprov-serv': '', 'parcial-prod': '', 'parcial-serv': '', 'reprov-prod': '', 'reprov-serv': '' };
+  return {
+    'cert-prod': '', 'cert-serv': '', 'aprov-prod': '', 'aprov-serv': '', 'parcial-prod': '', 'parcial-serv': '', 'reprov-prod': '', 'reprov-serv': '',
+    // Esses 3 aqui são diferentes de propósito: é um texto mais operacional/
+    // técnico (não é a "voz" de certificado/carta de uma empresa específica),
+    // então já vem preenchido — o cliente vê exatamente o que vai no e-mail
+    // sem precisar adivinhar, e só ajusta se quiser.
+    'notif-abertura': 'Informamos que foi concluída a análise referente à avaliação abaixo.',
+    'notif-plano-acao': 'Solicitamos o envio de um plano de ação para os pontos identificados.',
+    'notif-fechamento': 'Apresentamos esses dados para que sua equipe possa analisar os pontos de melhoria e alinhar os processos internos. Permanecemos à disposição para esclarecer dúvidas e apoiar no que for necessário.\n\nAtenciosamente,',
+  };
 }
 
 // ============ LAYOUT CONFIGURÁVEL DOS DOCUMENTOS (blocos dinâmicos) ============

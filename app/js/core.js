@@ -432,6 +432,7 @@ async function carregarPerfilELogar() {
     await carregarDocumentosVersoes();
     await carregarDocumentosPendentesAprovacao();
     await carregarCriteriosProduto();
+    await seedCriteriosProdutoPadrao();
     await carregarAvaliacoesProduto();
     await carregarCriteriosConferencia();
     await carregarConferencias();
@@ -965,7 +966,7 @@ async function carregarUnidadesDocumentos() {
 }
 
 async function doLogout() {
-  if (currentUser) addLog('logout', `${currentUser.email} saiu do sistema`);
+  addLog('logout', `${currentUser.email} saiu do sistema`);
   await supabaseClient.auth.signOut();
   currentUser = null;
   document.getElementById('app').classList.remove('active');
