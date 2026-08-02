@@ -428,12 +428,6 @@ function notificarFornecedorNota(avId) {
 
 // Só pede plano de ação quando o conceito bateu na pior faixa configurada —
 // mesma lógica de "pior faixa" já usada em avaliar.js pra exigir justificativa.
-function conceitoEhPiorFaixaProduto(d, conceito) {
-  if (!conceito || !d.faixasConceitoProduto || !d.faixasConceitoProduto.length) return false;
-  const piorFaixa = [...d.faixasConceitoProduto].sort((a, b) => a.de - b.de)[0];
-  return piorFaixa && piorFaixa.nome === conceito;
-}
-
 function notificarFornecedorProduto(avId) {
   const d = db();
   const av = d.avaliacoesProduto.find(a => a.id === avId);
@@ -449,7 +443,7 @@ function notificarFornecedorProduto(avId) {
   const descontos = av.descontoExtraDetalhe || [];
 
   const blocosCriterios = todosCriterios.map((n, i) =>
-    `${i + 1}. ${n.nome} (Nota: ${n.nota} de ${n.peso} — peso)${n.motivo ? `\nMotivo: ${n.motivo}` : ''}`);
+    `${i + 1}. ${n.nome} (Nota: ${n.nota} de ${n.peso})${n.motivo ? `\nMotivo: ${n.motivo}` : ''}`);
   const blocosDescontos = descontos.map(det => `- ${det.motivo}: desconto de ${det.valor} ponto(s)`);
 
   const textos = d.textos || {};
@@ -458,12 +452,12 @@ function notificarFornecedorProduto(avId) {
   const fechamento = textos['notif-fechamento'] || 'Apresentamos esses dados para que sua equipe possa analisar os pontos de melhoria e alinhar os processos internos. Permanecemos à disposição para esclarecer dúvidas e apoiar no que for necessário.\n\nAtenciosamente,';
 
   const assunto = `Avaliação de Nota Fiscal ${av.numeroNf || ''} - ${forn.nome}`;
-  let corpo = `${saudacao},\n${abertura}\n\n- Nota Fiscal: ${av.numeroNf || '—'}\n- Data: ${dataLabel}\n- Nota Obtida: ${av.notaGeral != null ? av.notaGeral.toFixed(1) : '—'}${av.conceito ? ` (${av.conceito})` : ''}\n\n`;
+  let corpo = `${saudacao},\n${abertura}\n\n- Nota Fiscal: ${av.numeroNf || '—'}\n- Data: ${dataLabel}\n- Nota Obtida: ${av.notaGeral != null ? av.notaGeral.toFixed(1) : '—'} (${getSubtituloDoc(getSituacao(av.notaGeral))})\n\n`;
 
   if (blocosCriterios.length) corpo += `Para sua ciência, detalhamos abaixo os critérios avaliados e a pontuação obtida em cada um:\n\n${blocosCriterios.join('\n\n')}\n\n`;
   if (blocosDescontos.length) corpo += `Descontos aplicados:\n${blocosDescontos.join('\n')}\n\n`;
   if (av.justificativa) corpo += `Outras observações:\n${av.justificativa}\n\n`;
-  if (conceitoEhPiorFaixaProduto(d, av.conceito)) corpo += `${planoAcaoTexto}\n\n`;
+  if (getSituacao(av.notaGeral) === 'reprovado') corpo += `${planoAcaoTexto}\n\n`;
   corpo += `${fechamento}\n${empNome}`;
 
   const link = `mailto:${encodeURIComponent(forn.email)}?cc=${encodeURIComponent(emailAdminMaster(d))}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
