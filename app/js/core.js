@@ -1047,13 +1047,14 @@ function getSituacao(nota) {
 
 function badgeSit(sit) {
   const map = {
-    certificado: ['badge-accent', '🏆 Certificado'],
-    aprovado: ['badge-success', '✅ Aprovado'],
-    parcial: ['badge-warn', '⚠️ Parcial'],
-    reprovado: ['badge-danger', '❌ Reprovado']
+    certificado: ['badge-accent', 'check', 'Certificado'],
+    aprovado: ['badge-success', 'check', 'Aprovado'],
+    parcial: ['badge-warn', 'alertTriangle', 'Parcial'],
+    reprovado: ['badge-danger', 'xCircle', 'Reprovado']
   };
-  const [cls, label] = map[sit] || ['badge-neutral', sit || '—'];
-  return `<span class="badge ${cls}">${label}</span>`;
+  const [cls, icone, label] = map[sit] || [null, null, sit || '—'];
+  if (!cls) return `<span class="badge badge-neutral">${label}</span>`;
+  return `<span class="badge ${cls}" style="display:inline-flex; align-items:center; gap:4px">${ic(icone, 12)}${label}</span>`;
 }
 
 
