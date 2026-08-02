@@ -186,13 +186,13 @@ function renderAdDashboard() {
     }
 
     // ---------- ALERTA: NOTIFICAR NOTA BAIXA — PRODUTO (NF) ----------
-    // "Precisa de atenção" aqui não é um "reprovado" fixo (o conceito de
-    // produto é configurável por faixa, cada empresa nomeia do seu jeito) —
-    // é qualquer lançamento com pelo menos um critério que ficou abaixo do
-    // peso (tem motivo escrito) ou levou desconto extra (conferência/doc vencido).
+    // Usa a mesma matriz de corte (Certificado/Aprovado/Parcial/Reprovado)
+    // que a avaliação de Serviço já usa — a régua de "conceito" (Ótimo/
+    // Intermediário/Ruim) é só uma classificação informativa do fornecedor,
+    // não decide notificação.
     const produtoAtencaoLista = (d.avaliacoesProduto || []).filter(av =>
       periodoDeData(av.data) === chaveMes &&
-      ((av.notas || []).some(n => n.motivo) || (av.descontoExtraDetalhe || []).length > 0));
+      (getSituacao(av.notaGeral) === 'reprovado' || getSituacao(av.notaGeral) === 'parcial'));
 
     if (produtoAtencaoLista.length) {
       alertaNotificarProduto = `
