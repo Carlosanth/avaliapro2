@@ -1090,7 +1090,7 @@ function montarNotificacoes() {
     });
     (d.documentosPendentesAprovacao || []).filter(p => p.status === 'pendente').forEach(p => {
       const forn = d.fornecedores.find(f => f.id === p.fornecedorId);
-      itens.push({ urgente: false, texto: `📥 ${forn ? forn.nome : '—'} enviou documento pelo portal — aguardando aprovação`, modulo: 'fornecedores' });
+      itens.push({ urgente: false, texto: `${ic('inbox', 12)}${forn ? forn.nome : '—'} enviou documento pelo portal — aguardando aprovação`, modulo: 'fornecedores' });
     });
   }
 
@@ -1143,7 +1143,7 @@ function abrirCentralNotificacoes() {
           <span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background:${item.urgente ? 'var(--danger)' : 'var(--warn)'}"></span>
           <span>${item.texto}</span>
         </div>
-      `).join('') : '<div class="empty-state"><p>Nada pendente por aqui. 🎉</p></div>'}
+      `).join('') : '<div class="empty-state"><p>Nada pendente por aqui.</p></div>'}
     </div>
   `);
 }
@@ -1215,8 +1215,8 @@ function renderAdminShell() {
       const hoje0h = new Date(); hoje0h.setHours(0, 0, 0, 0);
       const fimTrial0h = new Date(d.trialTerminaEm); fimTrial0h.setHours(0, 0, 0, 0);
       const diasRestantes = Math.round((fimTrial0h - hoje0h) / 86400000);
-      return `<div style="margin:0 16px 12px; padding:8px 10px; background:var(--warn-bg); border:1px solid var(--warn-border); border-radius:8px; font-size:11px; color:var(--warn)">
-        ${diasRestantes > 0 ? `🕐 Teste grátis: faltam ${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}` : '⚠️ Seu teste grátis acabou'}
+      return `<div style="margin:0 16px 12px; padding:8px 10px; background:var(--warn-bg); border:1px solid var(--warn-border); border-radius:8px; font-size:11px; color:var(--warn); display:flex; align-items:center; gap:5px">
+        ${diasRestantes > 0 ? `${ic('clock', 12)}Teste grátis: faltam ${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}` : `${ic('alertTriangle', 12)}Seu teste grátis acabou`}
       </div>`;
     })()}
     <div class="nav-list" id="nav-list">

@@ -67,7 +67,7 @@ function renderAvaliacoesRetencao() {
               <td style="font-weight:500">${form ? form.nome : '—'}</td>
               <td>${forn ? forn.nome : '—'}</td>
               <td style="color:var(--text-sec); font-size:12px">${fmtData(av.enviadoEm)}</td>
-              <td style="text-align:center">${temAnexo ? '📎 Sim' : '—'}</td>
+              <td style="text-align:center">${temAnexo ? `<span style="display:inline-flex; align-items:center; gap:4px">${ic('paperclip', 12)}Sim</span>` : '—'}</td>
               <td><div class="actions">
                 <button class="btn btn-secondary btn-sm" onclick="verDetalheAvaliacao('${av.id}')">Ver</button>
                 ${temAnexo ? `<button class="btn btn-secondary btn-sm" onclick="removerAnexosAvaliacaoRetencao('${av.id}')">Remover anexo</button>` : ''}
@@ -143,7 +143,7 @@ function renderAvaliacoesTableComAcoes(lista, d) {
           <td>${av.liberadoEdicao ? '<span class="badge badge-warn">Liberada</span>' : '<span class="badge badge-neutral">Travada</span>'}</td>
           <td><div class="actions">
             <button class="btn btn-secondary btn-sm" onclick="verDetalheAvaliacao('${av.id}')">Ver</button>
-            ${!av.semServico && (sit === 'reprovado' || sit === 'parcial') ? `<button class="btn btn-secondary btn-sm" onclick="verDetalheAvaliacao('${av.id}')" title="Ver e notificar por e-mail">🔔</button>` : ''}
+            ${!av.semServico && (sit === 'reprovado' || sit === 'parcial') ? `<button class="btn btn-secondary btn-sm" onclick="verDetalheAvaliacao('${av.id}')" title="Ver e notificar por e-mail">${ic('bell', 13)}</button>` : ''}
             ${!av.liberadoEdicao ? `<button class="btn btn-secondary btn-sm" onclick="liberarEdicao('${av.id}')">Liberar edição</button>` : ''}
           </div></td>
         </tr>`;
@@ -197,14 +197,14 @@ function verDetalheAvaliacao(id) {
     ${form ? form.criterios.map(c => linhaCriterioHTML(c, av.respostas[c.id])).join('') : ''}
     ${av.justificativa ? `<div style="margin-top:12px; padding:10px; background:var(--danger-bg); border-radius:8px; font-size:12px; color:var(--danger)"><b>Melhoria esperada:</b> ${av.justificativa}</div>` : ''}
     ${av.obs ? `<div style="margin-top:8px; font-size:12px; color:var(--text-sec)"><b>Observações:</b> ${av.obs}</div>` : ''}
-    ${av.anexos && av.anexos.length ? `<div style="margin-top:10px"><b style="font-size:12px">Anexos:</b>${av.anexos.map(a => `<div class="anexo-item">📎 ${a.caminhoStorage ? `<a href="#" onclick="event.preventDefault(); baixarAnexoAvaliacao('${a.caminhoStorage}', '${a.nome}')">${a.nome}</a>` : a.nome} <span style="color:var(--text-muted)">${a.tamanho}</span></div>`).join('')}</div>` : ''}
+    ${av.anexos && av.anexos.length ? `<div style="margin-top:10px"><b style="font-size:12px">Anexos:</b>${av.anexos.map(a => `<div class="anexo-item" style="display:flex; align-items:center; gap:5px">${ic('paperclip', 12)}${a.caminhoStorage ? `<a href="#" onclick="event.preventDefault(); baixarAnexoAvaliacao('${a.caminhoStorage}', '${a.nome}')">${a.nome}</a>` : a.nome} <span style="color:var(--text-muted)">${a.tamanho}</span></div>`).join('')}</div>` : ''}
     <div class="no-print" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px">
       ${!av.semServico && (sit === 'reprovado' || sit === 'parcial') ? (
         av.notificadoEm
-          ? `<span style="margin-right:auto; font-size:12px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px">✉️ Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
-          : `<button class="btn btn-primary" onclick="notificarFornecedorNota('${av.id}')" style="margin-right:auto">✉️ Notificar por e-mail</button>`
+          ? `<span style="margin-right:auto; font-size:12px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px">${ic('mail', 13)}Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
+          : `<button class="btn btn-primary" onclick="notificarFornecedorNota('${av.id}')" style="margin-right:auto; display:inline-flex; align-items:center; gap:6px">${ic('mail', 13)}Notificar por e-mail</button>`
       ) : ''}
-      <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="btn btn-secondary" onclick="window.print()">Imprimir</button>
       <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
     </div>
   `);

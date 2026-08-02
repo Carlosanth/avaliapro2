@@ -211,7 +211,7 @@ function renderAdDashboard() {
                 : `<button class="btn btn-secondary btn-sm" style="margin-left:auto; display:inline-flex; align-items:center; gap:5px" onclick="verDetalheAvaliacaoProduto('${av.id}')">${ic('bell', 13)} Ver / Notificar</button>`;
               return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px">
                 <span><b>${forn ? forn.nome : '—'}</b> — NF ${av.numeroNf || '—'} · nota ${av.notaGeral != null ? av.notaGeral.toFixed(1) : '—'}</span>
-                ${av.conceito ? `<span class="badge badge-neutral">${av.conceito}</span>` : ''}
+                ${badgeSit(getSituacao(av.notaGeral))}
                 ${acao}
               </div>`;
             }).join('')}

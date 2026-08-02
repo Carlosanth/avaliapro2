@@ -315,8 +315,8 @@ function renderAnexosLista() {
   const wrap = document.getElementById('anexos-lista');
   if (!wrap) return;
   wrap.innerHTML = window._formAtual.anexos.map((a, i) => `
-    <div class="anexo-item">
-      <span>📎 ${a.caminhoStorage ? `<a href="#" onclick="event.preventDefault(); baixarAnexoAvaliacao('${a.caminhoStorage}', '${a.nome}')">${a.nome}</a>` : a.nome}</span>
+    <div class="anexo-item" style="display:flex; align-items:center; gap:5px">
+      ${ic('paperclip', 12)}<span>${a.caminhoStorage ? `<a href="#" onclick="event.preventDefault(); baixarAnexoAvaliacao('${a.caminhoStorage}', '${a.nome}')">${a.nome}</a>` : a.nome}</span>
       <span style="color:var(--text-muted)">${a.tamanho}</span>
       <button onclick="removerAnexo(${i})">remover</button>
     </div>`).join('');
@@ -498,11 +498,11 @@ function renderAdAvaliar() {
     <div class="page-header"><div><h2>Avaliar</h2><p>Escolha o tipo de avaliação.</p></div></div>
     <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:20px">
       <div class="card" style="flex:1; min-width:220px">
-        <div class="card-title">📦 Produto</div>
+        <div class="card-title" style="display:flex; align-items:center; gap:7px">${ic('folder', 16)}Produto</div>
         <p style="font-size:12px; color:var(--text-muted)">Lançamento por nota fiscal — critérios com peso, conceito por faixa.</p>
       </div>
       <div class="card" style="flex:1; min-width:220px; cursor:pointer" onclick="irParaAvaliacaoServico()">
-        <div class="card-title">🧰 Serviço</div>
+        <div class="card-title" style="display:flex; align-items:center; gap:7px">${ic('users', 16)}Serviço</div>
         <p style="font-size:12px; color:var(--text-muted)">Preenchido pelos setores (avaliadores). Configure quem avalia o quê em Associações →</p>
       </div>
     </div>
@@ -582,7 +582,7 @@ function renderAvaliarProdutoTab() {
           <label>CNPJ do fornecedor</label>
           <div style="display:flex; gap:6px">
             <input type="text" id="lp-cnpj" placeholder="00.000.000/0000-00" oninput="this.value = formatarCNPJ(this.value)" style="flex:1">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="buscarFornecedorPorCnpj()">🔍 Buscar</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="buscarFornecedorPorCnpj()" style="display:inline-flex; align-items:center; gap:6px">${ic('search', 13)}Buscar</button>
           </div>
         </div>
         <div class="form-group">
@@ -681,10 +681,10 @@ async function buscarFornecedorPorCnpj() {
     const vencido = fornecedorTemDocumentoVencido(existente.id);
     const avisoVencido = vencido
       ? (d.descontoDocVencidoAtivo
-          ? ` &nbsp;<span style="color:var(--danger); font-weight:600">⚠️ Documentação vencida (-${d.valorDescontoDocVencido} ponto(s))</span>`
-          : ` &nbsp;<span style="color:var(--danger); font-weight:600">⚠️ Documentação vencida</span>`)
+          ? ` &nbsp;<span style="color:var(--danger); font-weight:600; display:inline-flex; align-items:center; gap:4px">${ic('alertTriangle', 13)}Documentação vencida (-${d.valorDescontoDocVencido} ponto(s))</span>`
+          : ` &nbsp;<span style="color:var(--danger); font-weight:600; display:inline-flex; align-items:center; gap:4px">${ic('alertTriangle', 13)}Documentação vencida</span>`)
       : '';
-    statusEl.innerHTML = '<span style="color:var(--accent); font-weight:600">🔵 Já cadastrado</span>' + avisoVencido;
+    statusEl.innerHTML = '<span style="color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:4px">' + ic('check', 13) + 'Já cadastrado</span>' + avisoVencido;
     atualizarPreviaNotaProduto();
     return;
   }
@@ -715,8 +715,8 @@ async function buscarFornecedorPorCnpj() {
   window._fornecedorLancamento = { id: null, cnpj: cnpjLimpo, novo: true };
   nomeInput.value = nomeEncontrado || '';
   statusEl.innerHTML = nomeEncontrado
-    ? '<span style="color:var(--success); font-weight:600">🟢 Novo — será cadastrado ao salvar</span>'
-    : '<span style="color:var(--warn); font-weight:600">🟢 Novo — não achamos os dados automaticamente, digite o nome</span>';
+    ? '<span style="color:var(--success); font-weight:600; display:inline-flex; align-items:center; gap:6px"><span style="width:8px; height:8px; border-radius:50%; background:var(--success); flex-shrink:0"></span>Novo — será cadastrado ao salvar</span>'
+    : '<span style="color:var(--warn); font-weight:600; display:inline-flex; align-items:center; gap:6px"><span style="width:8px; height:8px; border-radius:50%; background:var(--warn); flex-shrink:0"></span>Novo — não achamos os dados automaticamente, digite o nome</span>';
   atualizarPreviaNotaProduto();
 }
 
@@ -893,12 +893,12 @@ function aplicarConferenciaVinculada() {
 
   const infoTextos = conferencia.respostas.filter(r => r.tipo === 'texto').map(r => `${r.nome}: <b>${r.valor}</b>`);
   const infoFaixas = conferencia.respostas.filter(r => r.tipo === 'faixa').map(r =>
-    `${r.nome}: <b>${r.valor}${r.unidade || ''}</b> (${r.min}-${r.max}${r.unidade || ''}) ${r.dentroFaixa ? '✅' : `⚠️ fora — RPNC ${r.rpnc}`}`
+    `${r.nome}: <b>${r.valor}${r.unidade || ''}</b> (${r.min}-${r.max}${r.unidade || ''}) ${r.dentroFaixa ? ic('check', 12) : `${ic('alertTriangle', 12)} fora — RPNC ${r.rpnc}`}`
   );
   const infoPartes = [...infoTextos, ...infoFaixas];
   if (infoBox) {
-    infoBox.innerHTML = `<div style="margin:10px 0; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:12px">
-      ✅ Conferência encontrada pra essa NF (por ${conferencia.enviadoPorEmail || '—'})${infoPartes.length ? ' — ' + infoPartes.join(' · ') : ''}${conferencia.descontoTotal > 0 ? ` — <span style="color:var(--danger)">desconto de ${conferencia.descontoTotal} ponto(s) será somado na nota</span>` : ''}
+    infoBox.innerHTML = `<div style="margin:10px 0; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:12px; display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+      ${ic('check', 13)} Conferência encontrada pra essa NF (por ${conferencia.enviadoPorEmail || '—'})${infoPartes.length ? ' — ' + infoPartes.join(' · ') : ''}${conferencia.descontoTotal > 0 ? ` — <span style="color:var(--danger)">desconto de ${conferencia.descontoTotal} ponto(s) será somado na nota</span>` : ''}
     </div>`;
   }
   atualizarPreviaNotaProduto();
@@ -1105,7 +1105,7 @@ function renderResultadoHistoricoProduto(fornecedorId, mes, ano) {
 
   wrap.innerHTML = `
     <div style="display:flex; justify-content:flex-end; margin-bottom:10px">
-      <button class="btn btn-secondary btn-sm" onclick="abrirExportarRelatorioProduto('${fornecedorId}', ${mes}, ${ano})">📊 Exportar relatório</button>
+      <button class="btn btn-secondary btn-sm" onclick="abrirExportarRelatorioProduto('${fornecedorId}', ${mes}, ${ano})" style="display:inline-flex; align-items:center; gap:6px">${ic('chart', 13)}Exportar relatório</button>
     </div>
     <div style="margin-bottom:14px">
       <table>
@@ -1119,7 +1119,7 @@ function renderResultadoHistoricoProduto(fornecedorId, mes, ano) {
               <td>${fmtDataSimples(av.data)}</td>
               <td>${av.numeroNf || '—'}</td>
               <td style="text-align:center; font-weight:600">${av.notaGeral.toFixed(1)}</td>
-              <td><span style="padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:${faixa ? faixa.cor + '22' : 'var(--surface2)'}; color:${faixa ? faixa.cor : 'var(--text-muted)'}">${av.conceito || '—'}</span>${av.contaOcorrencia ? ' <span style="color:var(--danger); font-size:11px">⚠ ocorrência</span>' : ''}</td>
+              <td><span style="padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:${faixa ? faixa.cor + '22' : 'var(--surface2)'}; color:${faixa ? faixa.cor : 'var(--text-muted)'}">${av.conceito || '—'}</span>${av.contaOcorrencia ? ` <span style="color:var(--danger); font-size:11px; display:inline-flex; align-items:center; gap:3px">${ic('alertTriangle', 11)}ocorrência</span>` : ''}</td>
               <td><button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); excluirAvaliacaoProduto('${av.id}')">Excluir</button></td>
             </tr>`;
           }).join('')}
@@ -1144,7 +1144,7 @@ function verDetalheAvaliacaoProduto(id) {
     <div style="margin-bottom:14px">
       <span style="padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; background:${faixa ? faixa.cor + '22' : 'var(--surface2)'}; color:${faixa ? faixa.cor : 'var(--text-muted)'}">${av.conceito || '—'}</span>
       <b style="margin-left:8px; font-size:15px">${av.notaGeral.toFixed(1)}</b>
-      ${av.contaOcorrencia ? ' <span style="color:var(--danger); font-size:12px">⚠ conta como ocorrência</span>' : ''}
+      ${av.contaOcorrencia ? ` <span style="color:var(--danger); font-size:12px; display:inline-flex; align-items:center; gap:3px">${ic('alertTriangle', 12)}conta como ocorrência</span>` : ''}
     </div>
     ${(av.notas || []).map(n => `
       <div style="padding:6px 0; border-bottom:1px solid var(--border); font-size:13px">
@@ -1172,8 +1172,8 @@ function verDetalheAvaliacaoProduto(id) {
     <div class="no-print" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px">
       ${(av.notas || []).some(n => n.motivo) || (av.descontoExtraDetalhe || []).length ? (
         av.notificadoEm
-          ? `<span style="margin-right:auto; font-size:12px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px">✉️ Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
-          : `<button class="btn btn-primary" onclick="notificarFornecedorProduto('${av.id}')" style="margin-right:auto">✉️ Notificar por e-mail</button>`
+          ? `<span style="margin-right:auto; font-size:12px; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px">${ic('mail', 13)}Cobrado em ${new Date(av.notificadoEm).toLocaleDateString('pt-BR')}</span>`
+          : `<button class="btn btn-primary" onclick="notificarFornecedorProduto('${av.id}')" style="margin-right:auto; display:inline-flex; align-items:center; gap:6px">${ic('mail', 13)}Notificar por e-mail</button>`
       ) : ''}
       <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
     </div>
@@ -1494,7 +1494,7 @@ function renderReguaEditorHtml(c) {
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px">
           <input type="text" value="${op.label}" placeholder="Ex: Entregue no prazo combinado" style="flex:1" oninput="updateReguaOpcaoField(${i},'label',this.value)">
           <input type="number" step="0.5" value="${op.pontos}" placeholder="Pts" style="width:70px" oninput="updateReguaOpcaoField(${i},'pontos',this.value)">
-          <button class="btn btn-danger btn-sm" onclick="removeReguaOpcao(${i})">✕</button>
+          <button class="btn btn-danger btn-sm" onclick="removeReguaOpcao(${i})">${ic('x', 12)}</button>
         </div>
       `).join('')}
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px">

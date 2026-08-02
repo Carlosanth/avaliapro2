@@ -435,7 +435,7 @@ async function renderAdConfig() {
           <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px">Faça upload de uma imagem (PNG ou JPG) para usar como fundo do certificado de aprovação. O sistema sobrepõe o texto automaticamente. Tamanho ideal: 3508 × 2480 px.</p>
           <div id="fundo-cert-preview" style="margin-bottom:12px"></div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-            <button class="btn btn-secondary" onclick="document.getElementById('upload-fundo-cert').click()">📎 Selecionar imagem</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('upload-fundo-cert').click()" style="display:inline-flex; align-items:center; gap:6px">${ic('paperclip', 13)}Selecionar imagem</button>
             <button class="btn btn-danger btn-sm" onclick="removerFundo('ap_fundo_certificado', 'fundo-cert-preview')">Remover fundo</button>
           </div>
           <input type="file" id="upload-fundo-cert" accept="image/*" style="display:none" onchange="uploadFundo('ap_fundo_certificado', this, 'fundo-cert-preview')">
@@ -445,7 +445,7 @@ async function renderAdConfig() {
           <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px">Fundo usado nas cartas de aprovação, parcial e reprovação. Tamanho ideal: 2480 × 3508 px.</p>
           <div id="fundo-carta-preview" style="margin-bottom:12px"></div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-            <button class="btn btn-secondary" onclick="document.getElementById('upload-fundo-carta').click()">📎 Selecionar imagem</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('upload-fundo-carta').click()" style="display:inline-flex; align-items:center; gap:6px">${ic('paperclip', 13)}Selecionar imagem</button>
             <button class="btn btn-danger btn-sm" onclick="removerFundo('ap_fundo_carta', 'fundo-carta-preview')">Remover fundo</button>
           </div>
           <input type="file" id="upload-fundo-carta" accept="image/*" style="display:none" onchange="uploadFundo('ap_fundo_carta', this, 'fundo-carta-preview')">
@@ -951,7 +951,7 @@ function renderFundoPreview(storageKey, previewId) {
   const fundo = getFundoConfig(storageKey);
   if (fundo) {
     wrap.innerHTML = `<img src="${fundo}" style="max-width:240px; max-height:140px; border-radius:8px; border:1px solid var(--border); object-fit:cover">
-      <p style="font-size:11px; color:var(--success); margin-top:6px">✅ Fundo configurado</p>`;
+      <p style="font-size:11px; color:var(--success); margin-top:6px; display:flex; align-items:center; gap:5px">${ic('check', 12)}Fundo configurado</p>`;
   } else {
     wrap.innerHTML = `<p style="font-size:12px; color:var(--text-muted)">Nenhum fundo configurado — será gerado com fundo branco.</p>`;
   }
@@ -1307,8 +1307,8 @@ function renderLayoutEditorTipo(tipo) {
         <div id="layout-canvas-${tipo}" class="blkedit-canvas" style="width:${w}px; height:${h}px; background:${fundo ? `#fff url(${fundo})` : '#fff'}; background-size:100% 100%; background-position:center"></div>
         <div class="blkedit-toolbar">
           <button class="btn btn-primary btn-sm" onclick="adicionarBlocoLayout('${tipo}')">＋ Adicionar bloco</button>
-          <button class="btn btn-secondary btn-sm" onclick="baixarPDFTesteLayout('${tipo}')">📄 Baixar PDF de teste</button>
-          <button class="btn btn-secondary btn-sm" onclick="salvarLayout('${tipo}')">💾 Salvar layout</button>
+          <button class="btn btn-secondary btn-sm" onclick="baixarPDFTesteLayout('${tipo}')" style="display:inline-flex; align-items:center; gap:6px">${ic('fileText', 13)}Baixar PDF de teste</button>
+          <button class="btn btn-secondary btn-sm" onclick="salvarLayout('${tipo}')">Salvar layout</button>
           <button class="btn btn-secondary btn-sm" onclick="restaurarLayoutPadrao('${tipo}')">↺ Restaurar padrão</button>
         </div>
       </div>
@@ -1472,7 +1472,7 @@ function renderLayoutBlocks(tipo, atualizarSidebar = true) {
     div.appendChild(linhaWrap);
 
     const delX = document.createElement('span');
-    delX.className = 'blkedit-del'; delX.textContent = '✕';
+    delX.className = 'blkedit-del'; delX.innerHTML = ic('x', 11);
     delX.onclick = (e) => { e.stopPropagation(); removerBlocoLayout(tipo, b.id); };
     div.appendChild(delX);
     ['left','right'].forEach(lado => {
@@ -1530,7 +1530,7 @@ function renderEditorTextoDocumento(tipo) {
         <code style="cursor:pointer" onclick="inserirVariavelTexto('${tipo}','{periodo}')">{periodo}</code>
         <code style="cursor:pointer" onclick="inserirVariavelTexto('${tipo}','{empresa}')">{empresa}</code>
       </p>
-      <p style="font-size:10.5px; color:var(--text-muted); margin:0 0 8px">💡 Pra editar o texto de outra situação (ex: Parcial, Reprovado), troque no seletor "Simular" lá em cima.</p>
+      <p style="font-size:10.5px; color:var(--text-muted); margin:0 0 8px">Pra editar o texto de outra situação (ex: Parcial, Reprovado), troque no seletor "Simular" lá em cima.</p>
     </div>`;
 }
 
@@ -1578,7 +1578,7 @@ function renderLayoutSidebar(tipo) {
       ${blocos.map(bl => `
         <div class="blkedit-list-item" onclick="selecionarBlocoLayout('${tipo}','${bl.id}')">
           <div><div>${bl.label}</div><div class="bli-type">${bl.tipo === 'fixo' ? 'Texto fixo' : 'Variável · ' + (getVariaveisDoc()[bl.variavel]||{}).label}</div></div>
-          <span class="bli-del" onclick="event.stopPropagation(); removerBlocoLayout('${tipo}','${bl.id}')">✕</span>
+          <span class="bli-del" onclick="event.stopPropagation(); removerBlocoLayout('${tipo}','${bl.id}')">${ic('x', 11)}</span>
         </div>`).join('')}
     `;
     return;
@@ -1625,7 +1625,7 @@ function renderLayoutSidebar(tipo) {
         </div>
       </div>
     </div>
-    ${b.variavel === 'situacao' ? `<p style="font-size:10.5px; color:var(--text-muted); margin-top:-8px; margin-bottom:12px">💡 Essa variável já muda de cor sozinha (verde/laranja/vermelho) conforme o resultado — a cor acima só vale se não for essa variável.</p>` : ''}
+    ${b.variavel === 'situacao' ? `<p style="font-size:10.5px; color:var(--text-muted); margin-top:-8px; margin-bottom:12px">Essa variável já muda de cor sozinha (verde/laranja/vermelho) conforme o resultado — a cor acima só vale se não for essa variável.</p>` : ''}
 
     <div class="blkedit-prop"><label>Estilo</label>
       <div class="blkedit-toggle">
@@ -1650,11 +1650,11 @@ function renderLayoutSidebar(tipo) {
         <div class="blkedit-prop" style="margin-bottom:0"><label>Y</label><input type="text" value="${b.y}" onchange="atualizarBlocoLayout('${tipo}','y',parseFloat(this.value)||b.y)"></div>
         <div class="blkedit-prop" style="margin-bottom:0"><label>Largura</label><input type="text" value="${b.largura}" onchange="atualizarBlocoLayout('${tipo}','largura',parseFloat(this.value)||b.largura)"></div>
       </div>
-      <p style="font-size:11px; color:var(--text-muted); margin-top:8px">💡 Também dá pra arrastar as alcinhas azuis nas laterais do bloco no documento.</p>
+      <p style="font-size:11px; color:var(--text-muted); margin-top:8px">Também dá pra arrastar as alcinhas azuis nas laterais do bloco no documento.</p>
     </details>
 
     <div style="height:1px; background:var(--border); margin:14px 0"></div>
-    <button class="btn btn-danger btn-sm btn-block" onclick="removerBlocoLayout('${tipo}','${b.id}')">🗑 Remover bloco</button>
+    <button class="btn btn-danger btn-sm btn-block" onclick="removerBlocoLayout('${tipo}','${b.id}')" style="display:inline-flex; align-items:center; justify-content:center; gap:6px">${ic('trash', 13)}Remover bloco</button>
   `;
 }
 
@@ -1916,7 +1916,7 @@ function renderTiposDocumentoLista() {
   wrap.innerHTML = d.tiposDocumento.map(t => `
     <span style="display:inline-flex; align-items:center; gap:10px; padding:9px 10px 9px 16px; border:1px solid var(--border-strong); border-radius:999px; font-size:13px; background:var(--surface)">
       ${t}
-      <button onclick="removeTipoDocumento('${t.replace(/'/g, "\\'")}')" style="border:none; background:var(--surface2); color:var(--text-muted); width:20px; height:20px; border-radius:50%; cursor:pointer; font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center" title="Remover">✕</button>
+      <button onclick="removeTipoDocumento('${t.replace(/'/g, "\\'")}')" style="border:none; background:var(--surface2); color:var(--text-muted); width:20px; height:20px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center" title="Remover">${ic('x', 11)}</button>
     </span>
   `).join('');
 }

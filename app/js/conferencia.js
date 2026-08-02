@@ -388,10 +388,10 @@ function atualizarStatusFaixa(criterioId) {
 
   const dentro = recebida >= min && recebida <= max;
   if (dentro) {
-    statusEl.innerHTML = '<div style="margin-top:6px; font-size:12px; color:var(--success)">✅ Dentro da faixa recomendada</div>';
+    statusEl.innerHTML = `<div style="margin-top:6px; font-size:12px; color:var(--success); display:flex; align-items:center; gap:5px">${ic('check', 13)}Dentro da faixa recomendada</div>`;
   } else {
     statusEl.innerHTML = `
-      <div style="margin-top:6px; font-size:12px; color:var(--danger); font-weight:600">⚠️ Fora da faixa recomendada</div>
+      <div style="margin-top:6px; font-size:12px; color:var(--danger); font-weight:600; display:flex; align-items:center; gap:5px">${ic('alertTriangle', 13)}Fora da faixa recomendada</div>
       <div class="form-group" style="margin-top:6px; max-width:280px">
         <label>RPNC (obrigatório, fora da faixa)</label>
         <input type="text" class="cf-faixa-rpnc" data-criterio-id="${criterioId}" placeholder="Nº ou referência da não conformidade">

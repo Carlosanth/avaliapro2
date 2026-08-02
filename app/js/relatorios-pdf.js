@@ -105,15 +105,15 @@ function gerarRelatorioAd() {
             <td style="text-align:center; color:var(--text-muted)">${r.meses}/${r.totalMeses}</td>
             <td>${badgeSit(r.sit)}</td>
             <td><div class="actions">
-              <button class="btn btn-secondary btn-sm" onclick="baixarPDFIndividual('${r.id}')" title="Gerar apenas o PDF deste fornecedor">📄 PDF</button>
-              <button class="btn btn-secondary btn-sm" onclick="enviarCertificadoEmail('${r.id}')" title="Baixa o PDF e abre seu cliente de e-mail">✉️ E-mail</button>
+              <button class="btn btn-secondary btn-sm" onclick="baixarPDFIndividual('${r.id}')" title="Gerar apenas o PDF deste fornecedor" style="display:inline-flex; align-items:center; gap:6px">${ic('fileText', 13)}PDF</button>
+              <button class="btn btn-secondary btn-sm" onclick="enviarCertificadoEmail('${r.id}')" title="Baixa o PDF e abre seu cliente de e-mail" style="display:inline-flex; align-items:center; gap:6px">${ic('mail', 13)}E-mail</button>
             </div></td>
           </tr>`).join('')}
         </tbody>
       </table>
       <div style="display:flex; justify-content:flex-end; margin-top:18px; gap:10px">
         <button class="btn btn-secondary" onclick='exportarExcelAd(${JSON.stringify(resultados).replace(/'/g,"&apos;")}, "${periodoLabel}")'>Exportar Excel</button>
-        <button class="btn btn-success" onclick='gerarPDFsAd(${JSON.stringify(resultados).replace(/'/g,"&apos;")}, "${periodoLabel}")'>📄 Gerar PDFs (ZIP)</button>
+        <button class="btn btn-success" onclick='gerarPDFsAd(${JSON.stringify(resultados).replace(/'/g,"&apos;")}, "${periodoLabel}")' style="display:inline-flex; align-items:center; gap:6px">${ic('fileText', 13)}Gerar PDFs (ZIP)</button>
       </div>
     </div>
   `;
@@ -254,7 +254,7 @@ async function gerarPDFsAd(resultados, periodo) {
     addLog('pdfs_gerados', `${currentUser.email} gerou ${resultados.length} documentos para o período ${periodo}`);
     toast('PDFs gerados com sucesso!');
   } catch(e) { toast('Erro ao gerar PDFs: ' + e.message); }
-  btn.disabled = false; btn.textContent = '📄 Gerar PDFs (ZIP)';
+  btn.disabled = false; btn.innerHTML = `${ic('fileText', 13)}Gerar PDFs (ZIP)`;
 }
 
 function nomeArquivoDoc(r) {
