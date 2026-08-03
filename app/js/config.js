@@ -36,6 +36,7 @@ function getDefaultTextos() {
     'notif-abertura': 'Informamos que foi concluída a análise referente à avaliação abaixo.',
     'notif-plano-acao': 'Solicitamos o envio de um plano de ação para os pontos identificados.',
     'notif-fechamento': 'Apresentamos esses dados para que sua equipe possa analisar os pontos de melhoria e alinhar os processos internos. Permanecemos à disposição para esclarecer dúvidas e apoiar no que for necessário.\n\nAtenciosamente,',
+    'notif-prazo-dias': '10',
   };
 }
 
@@ -1510,7 +1511,7 @@ const LABELS_TEXTO_DOC = {
   'parcial-prod': 'Parcialmente aprovado · Produto', 'parcial-serv': 'Parcialmente aprovado · Serviço',
   'reprov-prod': 'Reprovado · Produto', 'reprov-serv': 'Reprovado · Serviço',
   'notif-abertura': 'Notificação ao fornecedor · Abertura', 'notif-plano-acao': 'Notificação ao fornecedor · Plano de ação',
-  'notif-fechamento': 'Notificação ao fornecedor · Fechamento'
+  'notif-fechamento': 'Notificação ao fornecedor · Fechamento', 'notif-prazo-dias': 'Notificação ao fornecedor · Prazo do plano de ação (dias)'
 };
 
 // Painel embutido de edição de texto: aparece dentro das propriedades do bloco

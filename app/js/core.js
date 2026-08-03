@@ -691,6 +691,8 @@ async function carregarAvaliacoes() {
       travado: av.bloqueada,
       liberadoEdicao: av.liberado_edicao,
       notificadoEm: av.notificado_em || null,
+      planoAcaoPrazo: av.plano_acao_prazo || null,
+      planoAcaoAnexo: av.plano_acao_anexo || null,
       situacao: av.situacao || null,
     };
   });
@@ -796,6 +798,8 @@ async function carregarAvaliacoesProduto() {
     conferenciaId: av.conferencia_id || null,
     justificativa: av.justificativa || '',
     notificadoEm: av.notificado_em || null,
+    planoAcaoPrazo: av.plano_acao_prazo || null,
+    planoAcaoAnexo: av.plano_acao_anexo || null,
   }));
 }
 

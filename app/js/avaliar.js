@@ -1169,6 +1169,7 @@ function verDetalheAvaliacaoProduto(id) {
         <p style="font-size:12px">${av.justificativa}</p>
       </div>
     ` : ''}
+    ${getSituacao(av.notaGeral) === 'reprovado' ? blocoPlanoAcaoHtml('produto', av) : ''}
     <div class="no-print" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px">
       ${(av.notas || []).some(n => n.motivo) || (av.descontoExtraDetalhe || []).length ? (
         av.notificadoEm

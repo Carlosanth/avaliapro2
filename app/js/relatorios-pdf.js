@@ -31,8 +31,13 @@ function renderAdRelatorio() {
         <textarea rows="2" onchange="salvarTextoDocumento('notif-abertura', this.value)">${textos['notif-abertura'] || ''}</textarea>
       </div>
       <div class="form-group">
-        <label>Pedido de plano de ação (só entra quando a avaliação é reprovada / bate na pior faixa)</label>
+        <label>Pedido de plano de ação (só entra quando a avaliação é reprovada)</label>
         <textarea rows="2" onchange="salvarTextoDocumento('notif-plano-acao', this.value)">${textos['notif-plano-acao'] || ''}</textarea>
+      </div>
+      <div class="form-group" style="max-width:260px">
+        <label>Prazo pro fornecedor enviar o plano de ação (dias)</label>
+        <input type="number" min="1" step="1" value="${textos['notif-prazo-dias'] || '10'}" onchange="salvarTextoDocumento('notif-prazo-dias', this.value)">
+        <p style="font-size:11px; color:var(--text-muted); margin-top:4px">O sistema soma esses dias à data da cobrança e já escreve o prazo no e-mail.</p>
       </div>
       <div class="form-group">
         <label>Fechamento</label>
@@ -401,13 +406,14 @@ function notificarFornecedorNota(avId) {
   const abertura = textos['notif-abertura'] || 'Informamos que foi concluída a análise referente à avaliação abaixo.';
   const planoAcaoTexto = textos['notif-plano-acao'] || 'Solicitamos o envio de um plano de ação para os pontos identificados.';
   const fechamento = textos['notif-fechamento'] || 'Apresentamos esses dados para que sua equipe possa analisar os pontos de melhoria e alinhar os processos internos. Permanecemos à disposição para esclarecer dúvidas e apoiar no que for necessário.\n\nAtenciosamente,';
+  const prazo = sit === 'reprovado' ? calcularPrazoPlanoAcao(d) : null;
 
   const assunto = `Avaliação de Desempenho de Fornecedores - ${periodoLabel} - ${forn.nome}`;
   let corpo = `${saudacao},\n${abertura}\n\n${setorInfo}- Nota Obtida: ${av.nota.toFixed(1)}${notaMax ? ` de ${notaMax.toFixed(1)}P` : ''} (${getSubtituloDoc(sit)})\n\n`;
   if (blocosCriterios.length) corpo += `Para sua ciência, detalhamos abaixo os critérios avaliados, a pontuação que sua empresa obteve e a nossa régua completa de avaliação:\n\n${blocosCriterios.join('\n\n')}\n${secaoMelhoriaAuto}`;
   if (av.justificativa) corpo += `\nOutras melhorias apontadas pelo setor avaliador:\n${av.justificativa}\n`;
   if (av.obs) corpo += `\nObservações:\n${av.obs}\n`;
-  if (sit === 'reprovado') corpo += `\n${planoAcaoTexto}\n`;
+  if (sit === 'reprovado') corpo += `\n${planoAcaoTexto}${prazo ? `\nPrazo de entrega: até ${prazo.formatada}.` : ''}\n`;
   corpo += `\n${fechamento}\n${empNome}`;
 
   const link = `mailto:${encodeURIComponent(forn.email)}?cc=${encodeURIComponent(emailAdminMaster(d))}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
@@ -418,16 +424,70 @@ function notificarFornecedorNota(avId) {
   // Grava quando foi notificado — assim o alerta do dashboard mostra
   // "Cobrado em DD/MM" em vez de ficar pedindo ação pra sempre. Não trava a
   // navegação: dispara depois do mailto, sem "await" no fluxo principal.
-  supabaseClient.from('avaliacoes').update({ notificado_em: new Date().toISOString() }).eq('id', av.id)
-    .then(({ error }) => { if (!error) { av.notificadoEm = new Date().toISOString(); renderAdDashboard(); } });
+  supabaseClient.from('avaliacoes').update({ notificado_em: new Date().toISOString(), plano_acao_prazo: prazo ? prazo.iso : null }).eq('id', av.id)
+    .then(({ error }) => { if (!error) { av.notificadoEm = new Date().toISOString(); av.planoAcaoPrazo = prazo ? prazo.iso : null; renderAdDashboard(); } });
+}
+
+// Calcula a data-limite pro fornecedor enviar o plano de ação (hoje + prazo
+// configurado, em dias). Usado tanto na notificação de Serviço quanto Produto.
+function calcularPrazoPlanoAcao(d) {
+  const dias = parseInt((d.textos && d.textos['notif-prazo-dias']) || '10', 10) || 10;
+  const data = new Date();
+  data.setDate(data.getDate() + dias);
+  return { iso: data.toISOString().slice(0, 10), formatada: data.toLocaleDateString('pt-BR') };
+}
+
+// Anexa o documento do plano de ação que o fornecedor mandou (por fora do
+// sistema, hoje só por e-mail) a uma avaliação específica — assim fica
+// rastreável depois, ligado direto à avaliação/NF que gerou a cobrança.
+async function anexarPlanoAcao(tipo, avId) {
+  const inputId = `plano-acao-file-${tipo}-${avId}`;
+  const fileInput = document.getElementById(inputId);
+  const file = fileInput && fileInput.files[0];
+  if (!file) { toast('Escolha um arquivo primeiro.'); return; }
+
+  const d = db();
+  const tabela = tipo === 'produto' ? 'avaliacoes_produto' : 'avaliacoes';
+  const lista = tipo === 'produto' ? d.avaliacoesProduto : d.avaliacoes;
+  const av = lista.find(a => a.id === avId);
+  if (!av) return;
+
+  const nomeSeguro = sanitizarNomeArquivo(file.name);
+  const caminho = `${currentUser.empresaId}/${currentUser.id}/${Date.now()}_${nomeSeguro}`;
+  try {
+    await r2Upload(caminho, file);
+  } catch (err) { toast('Erro ao enviar o arquivo: ' + err.message); return; }
+
+  const anexo = { nome: file.name, tamanho: (file.size / 1024).toFixed(0) + ' KB', caminhoStorage: caminho, enviadoEm: new Date().toISOString() };
+  const { error } = await supabaseClient.from(tabela).update({ plano_acao_anexo: anexo }).eq('id', avId);
+  if (error) { toast('Erro ao salvar o plano de ação: ' + error.message); return; }
+
+  addLog('plano_acao_anexado', `${currentUser.email} anexou o plano de ação de ${tipo === 'produto' ? 'uma NF' : 'uma avaliação de serviço'}`);
+  av.planoAcaoAnexo = anexo;
+  toast('Plano de ação anexado!');
+  if (tipo === 'produto') verDetalheAvaliacaoProduto(avId); else verDetalheAvaliacao(avId);
+}
+
+// Bloco de HTML (upload ou "já anexado") pro plano de ação — usado dentro dos
+// dois modais de detalhe (Serviço e Produto), só aparece quando reprovado.
+function blocoPlanoAcaoHtml(tipo, av) {
+  const prazoLabel = av.planoAcaoPrazo ? new Date(av.planoAcaoPrazo + 'T00:00:00').toLocaleDateString('pt-BR') : null;
+  return `
+    <div style="margin-top:14px; padding:10px 12px; background:var(--surface2); border-radius:8px">
+      <p style="font-size:12px; font-weight:600; margin-bottom:6px">Plano de ação${prazoLabel ? ` — prazo até ${prazoLabel}` : ''}</p>
+      ${av.planoAcaoAnexo
+        ? `<div style="font-size:12px; display:flex; align-items:center; gap:6px; color:var(--success)">${ic('paperclip', 13)}<a href="#" onclick="event.preventDefault(); baixarAnexoAvaliacao('${av.planoAcaoAnexo.caminhoStorage}', '${av.planoAcaoAnexo.nome}')">${av.planoAcaoAnexo.nome}</a> <span style="color:var(--text-muted)">— anexado em ${new Date(av.planoAcaoAnexo.enviadoEm).toLocaleDateString('pt-BR')}</span></div>`
+        : `<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+             <input type="file" id="plano-acao-file-${tipo}-${av.id}" style="font-size:11px; max-width:220px">
+             <button class="btn btn-secondary btn-sm" onclick="anexarPlanoAcao('${tipo}', '${av.id}')">Anexar</button>
+           </div>`}
+    </div>
+  `;
 }
 
 // ---------- NOTIFICAÇÃO PONTUAL — PRODUTO (NF) ----------
 // O botão de notificar já vive dentro do modal de "verDetalheAvaliacaoProduto"
 // (avaliar.js) — aqui só fica a lógica de montar e mandar o e-mail em si.
-
-// Só pede plano de ação quando o conceito bateu na pior faixa configurada —
-// mesma lógica de "pior faixa" já usada em avaliar.js pra exigir justificativa.
 function notificarFornecedorProduto(avId) {
   const d = db();
   const av = d.avaliacoesProduto.find(a => a.id === avId);
@@ -450,14 +510,16 @@ function notificarFornecedorProduto(avId) {
   const abertura = textos['notif-abertura'] || 'Informamos que foi concluída a análise referente à avaliação abaixo.';
   const planoAcaoTexto = textos['notif-plano-acao'] || 'Solicitamos o envio de um plano de ação para os pontos identificados.';
   const fechamento = textos['notif-fechamento'] || 'Apresentamos esses dados para que sua equipe possa analisar os pontos de melhoria e alinhar os processos internos. Permanecemos à disposição para esclarecer dúvidas e apoiar no que for necessário.\n\nAtenciosamente,';
+  const sitProduto = getSituacao(av.notaGeral);
+  const prazo = sitProduto === 'reprovado' ? calcularPrazoPlanoAcao(d) : null;
 
   const assunto = `Avaliação de Nota Fiscal ${av.numeroNf || ''} - ${forn.nome}`;
-  let corpo = `${saudacao},\n${abertura}\n\n- Nota Fiscal: ${av.numeroNf || '—'}\n- Data: ${dataLabel}\n- Nota Obtida: ${av.notaGeral != null ? av.notaGeral.toFixed(1) : '—'} (${getSubtituloDoc(getSituacao(av.notaGeral))})\n\n`;
+  let corpo = `${saudacao},\n${abertura}\n\n- Nota Fiscal: ${av.numeroNf || '—'}\n- Data: ${dataLabel}\n- Nota Obtida: ${av.notaGeral != null ? av.notaGeral.toFixed(1) : '—'} (${getSubtituloDoc(sitProduto)})\n\n`;
 
   if (blocosCriterios.length) corpo += `Para sua ciência, detalhamos abaixo os critérios avaliados e a pontuação obtida em cada um:\n\n${blocosCriterios.join('\n\n')}\n\n`;
   if (blocosDescontos.length) corpo += `Descontos aplicados:\n${blocosDescontos.join('\n')}\n\n`;
   if (av.justificativa) corpo += `Outras observações:\n${av.justificativa}\n\n`;
-  if (getSituacao(av.notaGeral) === 'reprovado') corpo += `${planoAcaoTexto}\n\n`;
+  if (sitProduto === 'reprovado') corpo += `${planoAcaoTexto}${prazo ? `\nPrazo de entrega: até ${prazo.formatada}.` : ''}\n\n`;
   corpo += `${fechamento}\n${empNome}`;
 
   const link = `mailto:${encodeURIComponent(forn.email)}?cc=${encodeURIComponent(emailAdminMaster(d))}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
@@ -465,8 +527,8 @@ function notificarFornecedorProduto(avId) {
   closeModal();
   window.location.href = link;
 
-  supabaseClient.from('avaliacoes_produto').update({ notificado_em: new Date().toISOString() }).eq('id', av.id)
-    .then(({ error }) => { if (!error) { av.notificadoEm = new Date().toISOString(); renderAdDashboard(); } });
+  supabaseClient.from('avaliacoes_produto').update({ notificado_em: new Date().toISOString(), plano_acao_prazo: prazo ? prazo.iso : null }).eq('id', av.id)
+    .then(({ error }) => { if (!error) { av.notificadoEm = new Date().toISOString(); av.planoAcaoPrazo = prazo ? prazo.iso : null; renderAdDashboard(); } });
 }
 
 async function enviarCobrancaDocumento(docId) {
