@@ -556,11 +556,11 @@ function ehAdmin(papel) {
 
 // Um admin comum só enxerga um módulo se: (a) ele é admin_master (vê tudo),
 // ou (b) não tem lista de permissões configurada (fallback = acesso total),
-// ou (c) o módulo está na lista dele. "dashboard" está sempre liberado, pra
-// nunca cair numa tela em branco.
+// ou (c) o módulo está na lista dele. "dashboard" segue a mesma regra dos
+// outros módulos agora — pode ser desmarcado por admin_master pra um admin
+// específico não ver.
 function temAcessoModulo(modulo) {
   if (!currentUser) return false;
-  if (modulo === 'dashboard') return true;
   if (currentUser.papel === 'admin_master') return true;
   if (currentUser.papel === 'avaliador') return false;
   if (!currentUser.permissoesModulos) return true;
