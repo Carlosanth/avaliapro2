@@ -368,7 +368,7 @@ function saudacaoPorHorario() {
 // Mostra a régua completa de cada critério (todas as opções, marcando a escolhida) e sugere
 // automaticamente qual seria a melhor opção em cada critério abaixo do máximo — além da
 // "Melhoria esperada" (justificativa) e "Observações" que o setor já preenche no formulário.
-function notificarFornecedorNota(avId) {
+async function notificarFornecedorNota(avId) {
   const d = db();
   const av = d.avaliacoes.find(a => a.id === avId);
   if (!av) return;
@@ -408,12 +408,20 @@ function notificarFornecedorNota(avId) {
   const fechamento = textos['notif-fechamento'] || 'Apresentamos esses dados para que sua equipe possa analisar os pontos de melhoria e alinhar os processos internos. Permanecemos à disposição para esclarecer dúvidas e apoiar no que for necessário.\n\nAtenciosamente,';
   const prazo = sit === 'reprovado' ? calcularPrazoPlanoAcao(d) : null;
 
+  let linkPortal = null;
+  if (sit === 'reprovado') {
+    toast('Gerando link do portal...');
+    linkPortal = await gerarLinkPortalFornecedor(forn.id);
+  }
+
   const assunto = `Avaliação de Desempenho de Fornecedores - ${periodoLabel} - ${forn.nome}`;
   let corpo = `${saudacao},\n${abertura}\n\n${setorInfo}- Nota Obtida: ${av.nota.toFixed(1)}${notaMax ? ` de ${notaMax.toFixed(1)}P` : ''} (${getSubtituloDoc(sit)})\n\n`;
   if (blocosCriterios.length) corpo += `Para sua ciência, detalhamos abaixo os critérios avaliados, a pontuação que sua empresa obteve e a nossa régua completa de avaliação:\n\n${blocosCriterios.join('\n\n')}\n${secaoMelhoriaAuto}`;
   if (av.justificativa) corpo += `\nOutras melhorias apontadas pelo setor avaliador:\n${av.justificativa}\n`;
   if (av.obs) corpo += `\nObservações:\n${av.obs}\n`;
-  if (sit === 'reprovado') corpo += `\n${planoAcaoTexto}${prazo ? `\nPrazo de entrega: até ${prazo.formatada}.` : ''}\n`;
+  if (sit === 'reprovado') {
+    corpo += `\n${planoAcaoTexto}${prazo ? `\nPrazo de entrega: até ${prazo.formatada}.` : ''}${linkPortal ? `\nVocê pode enviar o plano de ação diretamente por aqui, sem precisar responder este e-mail: ${linkPortal}` : ''}\n`;
+  }
   corpo += `\n${fechamento}\n${empNome}`;
 
   const link = `mailto:${encodeURIComponent(forn.email)}?cc=${encodeURIComponent(emailAdminMaster(d))}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
@@ -435,6 +443,20 @@ function calcularPrazoPlanoAcao(d) {
   const data = new Date();
   data.setDate(data.getDate() + dias);
   return { iso: data.toISOString().slice(0, 10), formatada: data.toLocaleDateString('pt-BR') };
+}
+
+// Gera um link novo do portal pra esse fornecedor (reaproveita a mesma Edge
+// Function que o botão "Gerar link do portal" já usa em Fornecedores — token
+// novo, válido por 15 dias). Se falhar por qualquer motivo, devolve null e o
+// e-mail sai sem o link, em vez de travar a notificação inteira.
+async function gerarLinkPortalFornecedor(fornecedorId) {
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('gerar-link-portal-fornecedor', { body: { fornecedorId } });
+    if (error || !data || data.ok === false) return null;
+    return data.link || null;
+  } catch {
+    return null;
+  }
 }
 
 // Anexa o documento do plano de ação que o fornecedor mandou (por fora do
@@ -488,7 +510,7 @@ function blocoPlanoAcaoHtml(tipo, av) {
 // ---------- NOTIFICAÇÃO PONTUAL — PRODUTO (NF) ----------
 // O botão de notificar já vive dentro do modal de "verDetalheAvaliacaoProduto"
 // (avaliar.js) — aqui só fica a lógica de montar e mandar o e-mail em si.
-function notificarFornecedorProduto(avId) {
+async function notificarFornecedorProduto(avId) {
   const d = db();
   const av = d.avaliacoesProduto.find(a => a.id === avId);
   if (!av) return;
@@ -513,13 +535,21 @@ function notificarFornecedorProduto(avId) {
   const sitProduto = getSituacao(av.notaGeral);
   const prazo = sitProduto === 'reprovado' ? calcularPrazoPlanoAcao(d) : null;
 
+  let linkPortal = null;
+  if (sitProduto === 'reprovado') {
+    toast('Gerando link do portal...');
+    linkPortal = await gerarLinkPortalFornecedor(forn.id);
+  }
+
   const assunto = `Avaliação de Nota Fiscal ${av.numeroNf || ''} - ${forn.nome}`;
   let corpo = `${saudacao},\n${abertura}\n\n- Nota Fiscal: ${av.numeroNf || '—'}\n- Data: ${dataLabel}\n- Nota Obtida: ${av.notaGeral != null ? av.notaGeral.toFixed(1) : '—'} (${getSubtituloDoc(sitProduto)})\n\n`;
 
   if (blocosCriterios.length) corpo += `Para sua ciência, detalhamos abaixo os critérios avaliados e a pontuação obtida em cada um:\n\n${blocosCriterios.join('\n\n')}\n\n`;
   if (blocosDescontos.length) corpo += `Descontos aplicados:\n${blocosDescontos.join('\n')}\n\n`;
   if (av.justificativa) corpo += `Outras observações:\n${av.justificativa}\n\n`;
-  if (sitProduto === 'reprovado') corpo += `${planoAcaoTexto}${prazo ? `\nPrazo de entrega: até ${prazo.formatada}.` : ''}\n\n`;
+  if (sitProduto === 'reprovado') {
+    corpo += `${planoAcaoTexto}${prazo ? `\nPrazo de entrega: até ${prazo.formatada}.` : ''}${linkPortal ? `\nVocê pode enviar o plano de ação diretamente por aqui, sem precisar responder este e-mail: ${linkPortal}` : ''}\n\n`;
+  }
   corpo += `${fechamento}\n${empNome}`;
 
   const link = `mailto:${encodeURIComponent(forn.email)}?cc=${encodeURIComponent(emailAdminMaster(d))}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
