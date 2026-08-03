@@ -1387,13 +1387,14 @@ async function seedCriteriosProdutoPadrao() {
 }
 
 function getModeloReguaPadrao(nome, peso) {
-  if (peso !== 10) return null;
   const chave = (nome || '').trim().toLowerCase();
-  if (MODELOS_REGUA_PRODUTO[chave]) return MODELOS_REGUA_PRODUTO[chave].map(o => ({ ...o }));
-  // Nome não bate com nenhum dos 4 padrões — ainda assim, com peso 10, oferece
-  // a régua genérica de 1 a 10 (nota já vem pronta, texto fica em branco pro
-  // admin descrever o que aquele nível significa pro critério dele).
-  return Array.from({ length: 10 }, (_, i) => ({ label: '', pontos: 10 - i }));
+  if (peso === 10 && MODELOS_REGUA_PRODUTO[chave]) return MODELOS_REGUA_PRODUTO[chave].map(o => ({ ...o }));
+  // Nome não bate com um dos 4 padrões (ou o peso não é 10) — ainda assim,
+  // oferece a régua genérica de 1 até o peso (nota já vem pronta, texto fica
+  // em branco pro admin descrever o que aquele nível significa). Peso 5 gera
+  // 5 linhas, peso 10 gera 10, etc.
+  const n = Math.max(1, Math.round(peso));
+  return Array.from({ length: n }, (_, i) => ({ label: '', pontos: n - i }));
 }
 
 function renderCriteriosProdutoTab() {
@@ -1429,63 +1430,77 @@ function renderCriteriosProdutoLista() {
       <td><input type="number" min="0" step="0.5" value="${c.peso}" style="width:80px" onchange="salvarPesoCriterioProduto('${c.id}', this.value)"></td>
       <td><input type="checkbox" ${c.ativo ? 'checked' : ''} onchange="toggleCriterioProdutoAtivo('${c.id}', this.checked)"></td>
       <td>${(c.opcoes && c.opcoes.length) ? `<span style="color:var(--accent); font-weight:600">${c.opcoes.length} opções</span>` : '<span style="color:var(--text-muted)">Livre</span>'}</td>
-      <td><div class="actions"><button class="btn btn-secondary btn-sm" onclick="toggleReguaEditor('${c.id}')">Editar régua</button> <button class="btn btn-danger btn-sm" onclick="excluirCriterioProduto('${c.id}')">Excluir</button></div></td>
+      <td><div class="actions"><button class="btn btn-secondary btn-sm" onclick="toggleReguaEditor('produto', '${c.id}')">Editar régua</button> <button class="btn btn-danger btn-sm" onclick="excluirCriterioProduto('${c.id}')">Excluir</button></div></td>
     </tr>
-    ${window._reguaEmEdicaoId === c.id ? `<tr><td colspan="5">${renderReguaEditorHtml(c)}</td></tr>` : ''}`).join('')}
+    ${(window._reguaEmEdicaoTipo === 'produto' && window._reguaEmEdicaoId === c.id) ? `<tr><td colspan="5">${renderReguaEditorHtml('produto', c)}</td></tr>` : ''}`).join('')}
   </tbody></table>`;
 }
 
-// ---- Editor de régua (opções de texto + pontos) por critério de produto ----
+// ---- Editor de régua (opções de texto + pontos) — compartilhado entre
+// Critérios de Produto (Avaliar) e Critérios de Conferência. "tipo" decide
+// qual tabela/cache/tela usar; o resto do fluxo é idêntico nos dois.
+window._reguaEmEdicaoTipo = null;
 window._reguaEmEdicaoId = null;
 window._reguaBuilder = [];
 
-function toggleReguaEditor(id) {
+function getReguaContexto(tipo) {
   const d = db();
-  if (window._reguaEmEdicaoId === id) { window._reguaEmEdicaoId = null; renderCriteriosProdutoLista(); return; }
-  const c = d.criteriosProduto.find(x => x.id === id);
+  return tipo === 'conferencia'
+    ? { tabela: 'criterios_conferencia', lista: d.criteriosConferencia, renderFn: renderCriteriosConferenciaTab, recarregarFn: carregarCriteriosConferencia, logChave: 'criterio_conferencia_regua_editada', logTexto: 'critério de conferência' }
+    : { tabela: 'criterios_produto', lista: d.criteriosProduto, renderFn: renderCriteriosProdutoLista, recarregarFn: carregarCriteriosProduto, logChave: 'criterio_produto_regua_editada', logTexto: 'critério de produto' };
+}
+
+function toggleReguaEditor(tipo, id) {
+  const ctx = getReguaContexto(tipo);
+  if (window._reguaEmEdicaoTipo === tipo && window._reguaEmEdicaoId === id) {
+    window._reguaEmEdicaoTipo = null; window._reguaEmEdicaoId = null; ctx.renderFn(); return;
+  }
+  const c = ctx.lista.find(x => x.id === id);
   if (!c) return;
+  window._reguaEmEdicaoTipo = tipo;
   window._reguaEmEdicaoId = id;
   window._reguaBuilder = (c.opcoes && c.opcoes.length) ? c.opcoes.map(o => ({ ...o })) : [];
-  renderCriteriosProdutoLista();
+  ctx.renderFn();
 }
 
 function addReguaOpcao() {
   window._reguaBuilder.push({ label: '', pontos: 0 });
-  renderCriteriosProdutoLista();
+  getReguaContexto(window._reguaEmEdicaoTipo).renderFn();
 }
 
 function removeReguaOpcao(idx) {
   window._reguaBuilder.splice(idx, 1);
-  renderCriteriosProdutoLista();
+  getReguaContexto(window._reguaEmEdicaoTipo).renderFn();
 }
 
 function updateReguaOpcaoField(idx, field, value) {
   window._reguaBuilder[idx][field] = field === 'pontos' ? (parseFloat(value) || 0) : value;
 }
 
-function sugerirModeloReguaProduto(id) {
-  const d = db();
-  const c = d.criteriosProduto.find(x => x.id === id);
+function sugerirModeloReguaProduto(tipo, id) {
+  const ctx = getReguaContexto(tipo);
+  const c = ctx.lista.find(x => x.id === id);
   if (!c) return;
   const modelo = getModeloReguaPadrao(c.nome, c.peso);
   if (!modelo) { toast('Não há modelo padrão pra esse nome/peso — monte a régua manualmente.'); return; }
   window._reguaBuilder = modelo;
-  renderCriteriosProdutoLista();
+  ctx.renderFn();
 }
 
-async function salvarReguaCriterioProduto(id) {
+async function salvarReguaCriterioProduto(tipo, id) {
+  const ctx = getReguaContexto(tipo);
   const opcoes = window._reguaBuilder.filter(o => o.label.trim());
   if (window._reguaBuilder.some(o => !o.label.trim())) toast('Linhas sem texto foram descartadas ao salvar.');
-  const { error } = await supabaseClient.from('criterios_produto').update({ opcoes }).eq('id', id);
+  const { error } = await supabaseClient.from(ctx.tabela).update({ opcoes }).eq('id', id);
   if (error) { toast('Erro ao salvar régua: ' + error.message); return; }
-  addLog('criterio_produto_regua_editada', `${currentUser.email} atualizou a régua de um critério de produto`);
-  window._reguaEmEdicaoId = null;
-  await carregarCriteriosProduto();
-  renderCriteriosProdutoLista();
+  addLog(ctx.logChave, `${currentUser.email} atualizou a régua de um ${ctx.logTexto}`);
+  window._reguaEmEdicaoTipo = null; window._reguaEmEdicaoId = null;
+  await ctx.recarregarFn();
+  ctx.renderFn();
   toast('Régua salva!');
 }
 
-function renderReguaEditorHtml(c) {
+function renderReguaEditorHtml(tipo, c) {
   const modeloDisponivel = getModeloReguaPadrao(c.nome, c.peso) !== null;
   return `
     <div class="criterio-block" style="margin:6px 0">
@@ -1502,11 +1517,11 @@ function renderReguaEditorHtml(c) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px">
         <div style="display:flex; gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="addReguaOpcao()">+ Opção</button>
-          ${modeloDisponivel ? `<button class="btn btn-secondary btn-sm" onclick="sugerirModeloReguaProduto('${c.id}')">Sugerir modelo padrão</button>` : ''}
+          ${modeloDisponivel ? `<button class="btn btn-secondary btn-sm" onclick="sugerirModeloReguaProduto('${tipo}', '${c.id}')">Sugerir modelo padrão</button>` : ''}
         </div>
         <div style="display:flex; gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="toggleReguaEditor('${c.id}')">Cancelar</button>
-          <button class="btn btn-primary btn-sm" onclick="salvarReguaCriterioProduto('${c.id}')">Salvar régua</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleReguaEditor('${tipo}', '${c.id}')">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="salvarReguaCriterioProduto('${tipo}', '${c.id}')">Salvar régua</button>
         </div>
       </div>
     </div>
